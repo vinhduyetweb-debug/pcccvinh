@@ -1,0 +1,19 @@
+{
+  "name": "PCCC News Radar",
+  "short_name": "PCCC Radar",
+  "description": "Radar tin PCCC/CNCH, lưu offline, xuất PDF, chia sẻ Zalo và quản lý trang bị kiểm định.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f7f7f8",
+  "theme_color": "#b91c1c",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

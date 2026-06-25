@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#b91c1c" />
+  <meta name="description" content="PCCC News Radar - PWA theo dõi tin PCCC/CNCH, lưu offline, xuất PDF đẹp, chia sẻ Zalo." />
+  <title>PCCC News Radar</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="appRoot" class="app-shell">
+    <header class="topbar">
+      <div class="brand-row">
+        <div class="logo-mark" aria-hidden="true">114</div>
+        <div>
+          <h1>PCCC News Radar</h1>
+          <p class="subtitle">Tin nhanh · Chính thống · Lưu bài học · Offline</p>
+        </div>
+        <button id="themeBtn" class="icon-btn" type="button" title="Đổi chế độ sáng/tối">◐</button>
+      </div>
+      <div class="status-strip" id="statusStrip">
+        <span class="pulse"></span>
+        <span id="statusLabel">READY</span>
+        <strong id="statusSlogan">Mở radar, giữ nghề tỉnh.</strong>
+      </div>
+      <div class="search-row">
+        <input id="searchInput" type="search" placeholder="Tìm: cháy chung cư, bình kiểm định, truyền tin, trực thăng..." autocomplete="off" />
+        <button id="refreshBtn" type="button" class="primary-btn">Cập nhật</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-panel" id="heroPanel">
+        <div>
+          <p class="kicker">Radar hôm nay</p>
+          <h2 id="heroTitle">Sẵn sàng lọc tin PCCC/CNCH</h2>
+          <p id="heroText">Ưu tiên nguồn chính thống, lưu nội dung quan trọng để đọc lại offline và xuất PDF.</p>
+        </div>
+        <div class="metric-grid">
+          <div class="metric"><span id="metricNews">0</span><small>Tin / hồ sơ</small></div>
+          <div class="metric"><span id="metricSaved">0</span><small>Đã lưu</small></div>
+          <div class="metric"><span id="metricEquipment">0</span><small>Thiết bị</small></div>
+        </div>
+      </section>
+
+      <nav class="category-tabs" id="categoryTabs" aria-label="Chuyên mục">
+        <button class="active" data-tab="all">Tất cả</button>
+        <button data-tab="incident">Cháy nổ</button>
+        <button data-tab="rescue">CNCH</button>
+        <button data-tab="law">Pháp quy</button>
+        <button data-tab="facebook">Facebook chính thống</button>
+        <button data-tab="tech">Công nghệ</button>
+        <button data-tab="model">Mô hình hay</button>
+        <button data-tab="equipment">Trang bị</button>
+        <button data-tab="data">Dữ liệu PCCC</button>
+        <button data-tab="saved">Đã lưu</button>
+      </nav>
+
+      <section class="quick-actions">
+        <button id="pasteArticleBtn" type="button">＋ Dán bài để lưu offline</button>
+        <button id="addEquipmentBtn" type="button">＋ Hồ sơ thiết bị</button>
+        <button id="exportDataBtn" type="button">Xuất JSON</button>
+        <label class="file-label">Nhập JSON<input id="importDataInput" type="file" accept="application/json" /></label>
+      </section>
+
+      <section id="sourcePanel" class="source-panel">
+        <details>
+          <summary>Nguồn nhanh & tìm kiếm chính thống</summary>
+          <div id="sourceList" class="source-grid"></div>
+        </details>
+      </section>
+
+      <section class="content-grid">
+        <div>
+          <div id="feedMeta" class="feed-meta">Đang khởi tạo dữ liệu...</div>
+          <div id="newsList" class="news-list" aria-live="polite"></div>
+        </div>
+        <aside class="side-panel">
+          <h3>Bộ lọc nghề</h3>
+          <div class="filter-stack">
+            <button class="filter-chip active" data-severity="all">Tất cả mức độ</button>
+            <button class="filter-chip" data-severity="red">Đỏ</button>
+            <button class="filter-chip" data-severity="orange">Cam</button>
+            <button class="filter-chip" data-severity="yellow">Vàng</button>
+            <button class="filter-chip" data-severity="green">Xanh</button>
+          </div>
+          <h3>Từ khóa nóng</h3>
+          <div id="hotKeywords" class="keyword-cloud"></div>
+          <details open>
+            <summary>Ghi nhớ vận hành</summary>
+            <p class="hint">V1.0 không cào Facebook trái phép, không tự đăng Zalo, không dùng private API. Nguồn lỗi sẽ chuyển sang chế độ mở link/tìm kiếm thủ công.</p>
+          </details>
+        </aside>
+      </section>
+
+      <section id="equipmentSection" class="equipment-section hidden">
+        <h2>Trang bị & kiểm định</h2>
+        <p class="hint">Quản lý nhanh bình chữa cháy, tem kiểm định, thiết bị truyền tin báo cháy và trạng thái kết nối dữ liệu.</p>
+        <div id="equipmentList" class="equipment-list"></div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Điều hướng chính">
+      <button data-tab="all" class="active">Radar</button>
+      <button data-tab="law">Pháp quy</button>
+      <button data-tab="tech">Công nghệ</button>
+      <button data-tab="equipment">Trang bị</button>
+      <button data-tab="saved">Đã lưu</button>
+    </nav>
+  </div>
+
+  <dialog id="articleDialog" class="article-dialog">
+    <div class="dialog-head">
+      <button id="closeArticleBtn" class="ghost-btn" type="button">← Đóng</button>
+      <div class="dialog-actions">
+        <button id="saveArticleBtn" type="button">Lưu offline</button>
+        <button id="pdfArticleBtn" type="button">Xuất PDF</button>
+        <button id="shareArticleBtn" type="button">Chia sẻ</button>
+      </div>
+    </div>
+    <article id="articleDetail" class="article-detail"></article>
+  </dialog>
+
+  <dialog id="pasteDialog" class="form-dialog">
+    <form method="dialog" id="pasteForm" class="form-card">
+      <h2>Dán bài để lưu offline</h2>
+      <input name="title" required placeholder="Tiêu đề bài viết" />
+      <input name="sourceName" placeholder="Nguồn" />
+      <input name="originalUrl" type="url" placeholder="Link gốc nếu có" />
+      <div class="two-cols">
+        <select name="category">
+          <option value="incident">Cháy nổ</option>
+          <option value="rescue">CNCH</option>
+          <option value="law">Pháp quy</option>
+          <option value="tech">Công nghệ</option>
+          <option value="model">Mô hình hay</option>
+          <option value="equipment">Trang bị</option>
+          <option value="data">Dữ liệu PCCC</option>
+        </select>
+        <select name="severity">
+          <option value="red">Đỏ - cần đọc ngay</option>
+          <option value="orange">Cam</option>
+          <option value="yellow">Vàng</option>
+          <option value="green">Xanh</option>
+        </select>
+      </div>
+      <textarea name="summary" rows="3" placeholder="Tóm tắt nhanh"></textarea>
+      <textarea name="content" rows="9" required placeholder="Dán nội dung bài viết / ghi chú / văn bản cần lưu"></textarea>
+      <textarea name="lessons" rows="4" placeholder="Bài học PCCC/CNCH rút ra"></textarea>
+      <input name="tags" placeholder="Từ khóa, cách nhau bằng dấu phẩy" />
+      <div class="form-actions">
+        <button type="button" class="ghost-btn" data-close-dialog="pasteDialog">Hủy</button>
+        <button type="submit" class="primary-btn">Lưu vào kho offline</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="equipmentDialog" class="form-dialog">
+    <form method="dialog" id="equipmentForm" class="form-card">
+      <h2>Hồ sơ thiết bị / cơ sở</h2>
+      <input name="name" required placeholder="Tên thiết bị hoặc cơ sở" />
+      <div class="two-cols">
+        <select name="type">
+          <option value="extinguisher">Bình chữa cháy</option>
+          <option value="fire-alarm-transmitter">Thiết bị truyền tin báo cháy</option>
+          <option value="hydrant">Trụ nước / điểm cấp nước</option>
+          <option value="escape-device">Thiết bị thoát nạn</option>
+          <option value="facility">Hồ sơ cơ sở</option>
+        </select>
+        <select name="status">
+          <option value="ok">OK</option>
+          <option value="check">Cần kiểm tra</option>
+          <option value="expire-soon">Sắp hết hạn</option>
+          <option value="missing">Thiếu tem / chưa rõ</option>
+          <option value="connect-needed">Cần kết nối dữ liệu</option>
+        </select>
+      </div>
+      <input name="location" placeholder="Vị trí đặt / địa chỉ cơ sở" />
+      <input name="serial" placeholder="Mã tem kiểm định / serial / mã thiết bị" />
+      <div class="two-cols">
+        <label>Ngày kiểm định / khai báo<input name="checkedAt" type="date" /></label>
+        <label>Ngày cần kiểm tra lại<input name="nextCheckAt" type="date" /></label>
+      </div>
+      <textarea name="notes" rows="5" placeholder="Ghi chú nghiệp vụ, tình trạng, điểm cần đối chiếu"></textarea>
+      <div class="form-actions">
+        <button type="button" class="ghost-btn" data-close-dialog="equipmentDialog">Hủy</button>
+        <button type="submit" class="primary-btn">Lưu hồ sơ</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="printArea" class="print-area" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PCCC Radar icon">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#b91c1c"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#g)"/>
+  <path d="M258 72c48 64 89 112 89 181 0 72-46 134-116 134-58 0-106-43-106-102 0-47 29-84 65-119-2 33 10 58 35 77 8-62 22-111 33-171z" fill="#fff" opacity=".94"/>
+  <circle cx="344" cy="346" r="70" fill="#111827" opacity=".88"/>
+  <circle cx="344" cy="346" r="42" fill="none" stroke="#fff" stroke-width="18"/>
+  <path d="m392 394 44 44" stroke="#fff" stroke-linecap="round" stroke-width="26"/>
+  <text x="88" y="444" font-family="Arial, sans-serif" font-size="62" font-weight="900" fill="#fff">114</text>
+</svg>

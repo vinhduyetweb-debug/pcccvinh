@@ -1,0 +1,79 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-06-26",
+  "sources": [
+    {
+      "id": "cuc-pccc",
+      "name": "Cục Cảnh sát PCCC và CNCH",
+      "type": "official",
+      "category": "law",
+      "priority": 1,
+      "url": "https://canhsatpccc.gov.vn/",
+      "rss": "https://canhsatpccc.gov.vn/vi/news/rss/",
+      "searchUrl": "https://www.google.com/search?q=site%3Acanhsatpccc.gov.vn+PCCC+CNCH+cháy+nổ"
+    },
+    {
+      "id": "bocongan",
+      "name": "Bộ Công an",
+      "type": "official",
+      "category": "law",
+      "priority": 1,
+      "url": "https://www.bocongan.gov.vn/",
+      "searchUrl": "https://www.google.com/search?q=site%3Abocongan.gov.vn+PCCC+CNCH"
+    },
+    {
+      "id": "vb-chinhphu",
+      "name": "Văn bản Chính phủ",
+      "type": "official",
+      "category": "law",
+      "priority": 1,
+      "url": "https://vanban.chinhphu.vn/",
+      "searchUrl": "https://www.google.com/search?q=site%3Avanban.chinhphu.vn+PCCC+CNCH"
+    },
+    {
+      "id": "fb-bocongan",
+      "name": "Facebook Bộ Công an",
+      "type": "facebook-official",
+      "category": "facebook",
+      "priority": 1,
+      "url": "https://www.facebook.com/mps.gov.vn",
+      "searchUrl": "https://www.facebook.com/search/posts?q=PCCC%20CNCH%20Bộ%20Công%20an"
+    },
+    {
+      "id": "facebook-pccc-search",
+      "name": "Tìm nhanh Facebook PCCC/CNCH",
+      "type": "facebook-search",
+      "category": "facebook",
+      "priority": 2,
+      "url": "https://www.facebook.com/search/posts?q=PCCC%20CNCH%20cháy%20nổ",
+      "searchUrl": "https://www.facebook.com/search/posts?q=PCCC%20CNCH%20cháy%20nổ"
+    },
+    {
+      "id": "firerescue1",
+      "name": "FireRescue1",
+      "type": "international",
+      "category": "tech",
+      "priority": 3,
+      "url": "https://www.firerescue1.com/",
+      "searchUrl": "https://www.google.com/search?q=site%3Afirerescue1.com+fire+rescue+technology"
+    },
+    {
+      "id": "nfpa",
+      "name": "NFPA Research",
+      "type": "international",
+      "category": "tech",
+      "priority": 3,
+      "url": "https://www.nfpa.org/education-and-research/research",
+      "searchUrl": "https://www.google.com/search?q=site%3Anfpa.org+fire+research+large+loss"
+    },
+    {
+      "id": "zalo-share-docs",
+      "name": "Zalo Developers - Share",
+      "type": "docs",
+      "category": "data",
+      "priority": 4,
+      "url": "https://developers.zalo.me/docs/social-api/tham-khao/huong-dan-tao-lien-ket-de-chia-se",
+      "searchUrl": "https://developers.zalo.me/docs"
+    }
+  ]
+}

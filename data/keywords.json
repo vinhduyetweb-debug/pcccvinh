@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "hot": [
+    "cháy nhà dân",
+    "chung cư mini",
+    "nhà ở kết hợp kinh doanh",
+    "kho xưởng",
+    "pin lithium",
+    "khí gas",
+    "hóa chất",
+    "CNCH",
+    "bình chữa cháy kiểm định",
+    "thiết bị truyền tin báo cháy",
+    "cơ sở dữ liệu quốc gia PCCC",
+    "tổ liên gia",
+    "trực thăng chữa cháy",
+    "robot chữa cháy",
+    "drone chữa cháy",
+    "thiết bị thoát nạn",
+    "trụ nước di động"
+  ],
+  "severityRules": {
+    "red": ["tử vong", "thương vong", "nổ", "hóa chất", "chung cư", "cao tầng", "mắc kẹt", "sập", "pin lithium"],
+    "orange": ["cháy lớn", "kho", "xưởng", "lan rộng", "nhiều phương tiện", "cứu nạn", "gas"],
+    "yellow": ["khuyến cáo", "kiểm tra", "tập huấn", "diễn tập", "tuyên truyền"],
+    "green": ["văn bản", "hướng dẫn", "mô hình", "công nghệ", "nghiên cứu"]
+  }
+}

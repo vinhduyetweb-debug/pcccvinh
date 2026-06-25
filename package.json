@@ -1,0 +1,11 @@
+{
+  "name": "pccc-news-radar",
+  "version": "1.0.0",
+  "description": "Static PWA radar for PCCC/CNCH news, offline reading, PDF export, Zalo sharing and equipment compliance notes.",
+  "private": true,
+  "scripts": {
+    "check": "node --check app.js && node --check service-worker.js && node --check tools/validate-app.js",
+    "validate": "node tools/validate-app.js"
+  },
+  "devDependencies": {}
+}

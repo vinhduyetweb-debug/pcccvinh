@@ -1,0 +1,93 @@
+{
+  "version": "1.0.0",
+  "items": [
+    {
+      "id": "law-55-2024",
+      "title": "Luật PCCC và CNCH 55/2024/QH15 - mốc hiệu lực 01/07/2025",
+      "category": "law",
+      "severity": "red",
+      "sourceName": "Văn bản Chính phủ",
+      "originalUrl": "https://vanban.chinhphu.vn/?docid=212483&pageid=27160",
+      "summary": "Mốc pháp lý lõi cần theo dõi cho công tác PCCC và CNCH từ 01/07/2025.",
+      "content": "Lưu ý nghiệp vụ: tạo tab theo dõi văn bản mới, mốc hiệu lực, việc khai báo/cập nhật dữ liệu và nghĩa vụ trang bị, kết nối trong cơ sở thuộc diện quản lý PCCC. Nội dung chi tiết phải đối chiếu văn bản gốc trước khi sử dụng chính thức.",
+      "lessons": "Không dùng tin truyền miệng thay văn bản. Mọi checklist cơ sở phải có nguồn đối chiếu."
+    },
+    {
+      "id": "stamp-extinguisher-qrcode",
+      "title": "Bình chữa cháy và phương tiện PCCC có tem kiểm định, QR/serial cần đối chiếu",
+      "category": "equipment",
+      "severity": "orange",
+      "sourceName": "Cục Cảnh sát PCCC và CNCH",
+      "originalUrl": "https://canhsatpccc.gov.vn/vi/news/huong-dan-cong-dong/huong-dan-kiem-tra-bao-mat-tem-kiem-dinh-phuong-tien-va-truy-xuat-ma-qrcore-2257",
+      "summary": "Theo dõi tem kiểm định, mã QR, serial và giấy chứng nhận kiểm định của phương tiện PCCC.",
+      "content": "Ứng dụng hỗ trợ lưu hồ sơ từng bình/phương tiện: vị trí đặt, serial, mã tem, ngày kiểm định, ngày cần kiểm tra lại, tình trạng và ghi chú bất thường. App không thay thế kết luận kiểm định chính thức.",
+      "lessons": "Thiết bị có mặt chưa đủ; hồ sơ, tem và tình trạng sử dụng phải rõ."
+    },
+    {
+      "id": "transmission-national-db",
+      "title": "Thiết bị truyền tin báo cháy và kết nối Cơ sở dữ liệu Quốc gia về PCCC/CNCH",
+      "category": "data",
+      "severity": "red",
+      "sourceName": "Cục Cảnh sát PCCC và CNCH",
+      "originalUrl": "https://canhsatpccc.gov.vn/vi/news/trang-dia-phuong/ha-noi-tang-cuong-khai-bao-cap-nhat-du-lieu-va-ket-noi-he-thong-truyen-tin-bao-chay-vi-an-toan-cong-dong-4896",
+      "summary": "Theo dõi trạng thái khai báo, cập nhật dữ liệu và kết nối thiết bị truyền tin báo cháy của cơ sở.",
+      "content": "App lưu hồ sơ cơ sở: loại hình, địa chỉ, người phụ trách, tình trạng thiết bị truyền tin, trạng thái kết nối dữ liệu, mốc khai báo và ghi chú kiểm tra. Các mốc pháp lý phải đối chiếu văn bản chính thức trước khi áp dụng.",
+      "lessons": "Cơ sở dữ liệu sạch giúp phản ứng nhanh; dữ liệu sai làm chậm chỉ huy."
+    },
+    {
+      "id": "to-lien-gia",
+      "title": "Tổ liên gia an toàn PCCC và điểm chữa cháy công cộng",
+      "category": "model",
+      "severity": "yellow",
+      "sourceName": "Trường Đại học PCCC / Cục Cảnh sát PCCC-CNCH",
+      "originalUrl": "https://daihocpccc.bocongan.gov.vn/?p=201615",
+      "summary": "Mô hình cơ sở giúp lan tỏa kỹ năng PCCC tại khu dân cư, nhà ở kết hợp kinh doanh.",
+      "content": "Nên lưu theo dạng mô hình áp dụng: điều kiện triển khai, lực lượng tại chỗ, phương tiện tại điểm, quy trình báo động và huấn luyện định kỳ.",
+      "lessons": "Cứu ban đầu là vàng; mô hình tốt phải đo được người biết dùng phương tiện."
+    },
+    {
+      "id": "drone-ai-iot",
+      "title": "AI, IoT, drone và camera nhiệt trong PCCC/CNCH",
+      "category": "tech",
+      "severity": "green",
+      "sourceName": "Nguồn kỹ thuật/chuyên ngành",
+      "originalUrl": "https://canhsatpccc.gov.vn/",
+      "summary": "Theo dõi tiến bộ kỹ thuật: giám sát từ xa, cảnh báo sớm, trinh sát hiện trường, định vị nạn nhân.",
+      "content": "Đưa vào nhóm công nghệ tham khảo/đang áp dụng từng phần. Cần đánh giá điều kiện pháp lý, kinh phí, huấn luyện, bảo trì, tính ổn định mạng và khả năng tích hợp dữ liệu.",
+      "lessons": "Công nghệ chỉ mạnh khi vào đúng bài toán và có người vận hành được."
+    },
+    {
+      "id": "helicopter-firefighting",
+      "title": "Trực thăng chữa cháy - phương tiện đặc thù cần điều kiện huy động lớn",
+      "category": "tech",
+      "severity": "green",
+      "sourceName": "Nguồn báo chí/kỹ thuật tham khảo",
+      "originalUrl": "https://www.google.com/search?q=trực+thăng+chữa+cháy+Việt+Nam+gàu+nước",
+      "summary": "Theo dõi khả năng ứng dụng cho cháy rừng, địa hình khó, khu vực xa nguồn nước hoặc khó tiếp cận mặt đất.",
+      "content": "Gắn nhãn GLOBAL_REFERENCE/ĐẶC THÙ. Không xem là giải pháp phổ thông. Cần cơ chế huy động, huấn luyện phối hợp, nguồn nước, an toàn bay và chi phí lớn.",
+      "lessons": "Không mê phương tiện lớn; phải hỏi có phù hợp địa bàn, kinh phí và cơ chế không."
+    },
+    {
+      "id": "escape-slide-device",
+      "title": "Thiết bị thoát nạn bằng cầu tuột / máng trượt / túi thoát hiểm",
+      "category": "tech",
+      "severity": "yellow",
+      "sourceName": "Nguồn kỹ thuật tham khảo",
+      "originalUrl": "https://www.google.com/search?q=thiết+bị+thoát+nạn+cầu+tuột+PCCC",
+      "summary": "Theo dõi giải pháp thoát nạn bổ sung cho nhà cao tầng, nhà trọ, trường học, cơ sở đông người.",
+      "content": "Cần đánh giá tải trọng, chiều cao, chứng nhận, huấn luyện sử dụng, tâm lý người dùng, bảo trì và vị trí lắp đặt. Không thay thế lối thoát nạn đạt chuẩn.",
+      "lessons": "Thiết bị thoát nạn chỉ hữu ích khi người dân biết dùng trong hoảng loạn."
+    },
+    {
+      "id": "mobile-water-point",
+      "title": "Trụ nước di động / điểm cấp nước chữa cháy bổ sung cho hẻm sâu",
+      "category": "equipment",
+      "severity": "yellow",
+      "sourceName": "Nguồn địa phương/thực tiễn",
+      "originalUrl": "https://www.google.com/search?q=điểm+cấp+nước+chữa+cháy+công+cộng+PCCC",
+      "summary": "Theo dõi giải pháp tăng khả năng tiếp cận nước chữa cháy ở khu dân cư, hẻm nhỏ, nơi xe chữa cháy khó vào.",
+      "content": "Cần lưu vị trí, dung tích, khả năng tiếp nước, khóa/mở, người phụ trách, kiểm tra định kỳ và khả năng phối hợp với tổ liên gia.",
+      "lessons": "Nước đúng chỗ, người biết dùng, đường tiếp cận rõ mới thành năng lực thật."
+    }
+  ]
+}
