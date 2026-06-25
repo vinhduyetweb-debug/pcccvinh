@@ -19,7 +19,7 @@ const requiredFiles = [
 ];
 const forbidden = ['.env.local', '.vercel', 'node_modules'];
 const requiredKeys = ['pccc_radar_settings', 'pccc_radar_version', 'pccc_radar_history'];
-const cacheName = 'pccc-news-radar-cache-v1.1.0';
+const cacheName = 'pccc-news-radar-cache-v1.1.1';
 let failed = false;
 
 function fail(message) {
@@ -61,6 +61,8 @@ if (!app.includes('indexedDB.open')) fail('app.js missing IndexedDB usage');
 if (!app.includes('window.print')) fail('app.js missing PDF print flow');
 if (!app.includes('navigator.share')) fail('app.js missing Web Share API fallback flow');
 if (!app.includes('api/live-news')) fail('app.js missing Vercel Live API fetch flow');
+if (!app.includes('relativeTime')) fail('app.js missing relative timeline flow');
+if (!app.includes('latest-card')) fail('app.js missing latest-first highlighted card flow');
 if (!app.includes('checklistRuns')) fail('app.js missing checklist field-pro store');
 if (!app.includes('incidents')) fail('app.js missing incident dossier store');
 if (!app.includes('milestones')) fail('app.js missing milestone store');
@@ -85,5 +87,5 @@ pass('Data JSON files parse correctly');
 
 if (failed) process.exit(1);
 console.log('============================================');
-console.log('PCCC NEWS RADAR V1.1.0 FIELD PRO VALIDATION PASS');
+console.log('PCCC NEWS RADAR V1.1.1 FIELD PRO VALIDATION PASS');
 console.log('============================================');

@@ -1,4 +1,4 @@
-/* PCCC News Radar V1.1.0 - Vercel Live News API */
+/* PCCC News Radar V1.1.1 - Vercel Live News API: latest incident first */
 const GOOGLE_NEWS = 'https://news.google.com/rss/search';
 
 const QUERIES = [
@@ -6,31 +6,31 @@ const QUERIES = [
     id: 'hot-fire-vn',
     name: 'Tin nóng cháy nổ Việt Nam',
     category: 'incident',
-    q: 'cháy OR hỏa hoạn OR cháy lớn PCCC Việt Nam when:2d'
+    q: 'cháy OR hỏa hoạn OR cháy lớn OR nổ PCCC Việt Nam when:1d'
   },
   {
     id: 'rescue-vn',
     name: 'Tin CNCH Việt Nam',
     category: 'rescue',
-    q: 'cứu nạn cứu hộ OR CNCH Việt Nam when:7d'
+    q: 'cứu nạn cứu hộ OR CNCH OR tai nạn sự cố Việt Nam when:2d'
   },
   {
     id: 'official-pccc',
     name: 'Cục Cảnh sát PCCC và CNCH',
     category: 'law',
-    q: 'site:canhsatpccc.gov.vn PCCC CNCH cháy nổ when:14d'
+    q: 'site:canhsatpccc.gov.vn PCCC CNCH cháy nổ tai nạn sự cố when:7d'
   },
   {
     id: 'official-police-local',
     name: 'Công an địa phương PCCC/CNCH',
     category: 'incident',
-    q: 'site:congan.*.gov.vn PCCC CNCH cháy nổ when:14d'
+    q: 'site:congan.*.gov.vn PCCC CNCH cháy nổ tai nạn sự cố when:7d'
   },
   {
     id: 'cand-fire',
     name: 'CAND PCCC/CNCH',
     category: 'incident',
-    q: 'site:cand.com.vn cháy PCCC cứu nạn cứu hộ when:7d'
+    q: 'site:cand.com.vn cháy PCCC cứu nạn cứu hộ tai nạn sự cố when:3d'
   },
   {
     id: 'tech-pccc',
@@ -82,8 +82,8 @@ function tagAttr(xml, tag, attr) {
 
 function guessSeverity(text = '') {
   const t = text.toLowerCase();
-  if (/tử vong|thương vong|nổ|hóa chất|chung cư|cao tầng|mắc kẹt|sập|pin lithium|thiệt mạng/.test(t)) return 'red';
-  if (/cháy lớn|kho|xưởng|lan rộng|nhiều phương tiện|gas|cứu nạn|cứu hộ/.test(t)) return 'orange';
+  if (/tử vong|thương vong|nổ|hóa chất|chung cư|cao tầng|mắc kẹt|sập|pin lithium|thiệt mạng|tai nạn nghiêm trọng/.test(t)) return 'red';
+  if (/cháy lớn|kho|xưởng|lan rộng|nhiều phương tiện|gas|cứu nạn|cứu hộ|tai nạn|sự cố/.test(t)) return 'orange';
   if (/khuyến cáo|kiểm tra|tập huấn|diễn tập|tuyên truyền|mô hình|quy định|thông tư/.test(t)) return 'yellow';
   return 'green';
 }
@@ -91,7 +91,7 @@ function guessSeverity(text = '') {
 function inferTags(text = '') {
   const keys = ['cháy', 'nổ', 'PCCC', 'CNCH', 'cứu nạn', 'cứu hộ', 'chung cư', 'kho xưởng', 'bình chữa cháy', 'thiết bị truyền tin', 'trực thăng', 'robot', 'drone'];
   const lower = text.toLowerCase();
-  return keys.filter(k => lower.includes(k.toLowerCase())).slice(0, 5);
+  return keys.concat(['tai nạn', 'sự cố', 'thiệt mạng', 'mắc kẹt']).filter((k, i, arr) => arr.indexOf(k) === i && lower.includes(k.toLowerCase())).slice(0, 5);
 }
 
 function parseRss(xml, source) {
@@ -128,7 +128,7 @@ async function fetchText(url) {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'PCCC-News-Radar/1.1.0 (+https://vercel.app)',
+        'User-Agent': 'PCCC-News-Radar/1.1.1 (+https://vercel.app)',
         'Accept': 'application/rss+xml, application/xml, text/xml, */*'
       }
     });
@@ -150,6 +150,17 @@ async function fetchDirectRss(source) {
   return parseRss(xml, source);
 }
 
+function itemText(item) {
+  return `${item.title || ''} ${item.summary || ''} ${(item.tags || []).join(' ')} ${item.category || ''}`.toLowerCase();
+}
+function isIncidentOrAccident(item) {
+  if (['incident', 'rescue'].includes(item.category)) return true;
+  return /cháy|hỏa hoạn|nổ|tai nạn|sự cố|cứu nạn|cứu hộ|cnch|mắc kẹt|sập|đuối nước|thương vong|thiệt mạng/.test(itemText(item));
+}
+function timeMs(item) {
+  const t = new Date(item.publishedAt || 0).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
 function dedupe(items) {
   const seen = new Set();
   return items.filter(item => {
@@ -157,7 +168,12 @@ function dedupe(items) {
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+  }).sort((a, b) => {
+    const ai = isIncidentOrAccident(a) ? 1 : 0;
+    const bi = isIncidentOrAccident(b) ? 1 : 0;
+    if (ai !== bi) return bi - ai;
+    return timeMs(b) - timeMs(a);
+  });
 }
 
 module.exports = async function handler(req, res) {
@@ -173,7 +189,7 @@ module.exports = async function handler(req, res) {
   const items = dedupe(batches.flat()).slice(0, 80);
   return res.status(200).json({
     app: 'PCCC News Radar',
-    version: '1.1.0',
+    version: '1.1.1',
     mode: 'vercel-live-news-api',
     fetchedAt: startedAt,
     count: items.length,

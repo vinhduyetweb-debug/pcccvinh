@@ -1,6 +1,6 @@
-/* PCCC News Radar V1.1.0 Field Pro - Static PWA */
-const APP_VERSION = '1.1.0';
-const CACHE_NAME = 'pccc-news-radar-cache-v1.1.0';
+/* PCCC News Radar V1.1.1 Field Pro - Latest First Hotline */
+const APP_VERSION = '1.1.1';
+const CACHE_NAME = 'pccc-news-radar-cache-v1.1.1';
 const DB_NAME = 'pccc_news_radar_db';
 const DB_VERSION = 2;
 const LS_SETTINGS = 'pccc_radar_settings';
@@ -35,10 +35,65 @@ function uid(prefix = 'id') {
 }
 
 function nowIso() { return new Date().toISOString(); }
+function parseTime(value) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
 function formatDate(value) {
   if (!value) return 'Chưa rõ thời gian';
   try { return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)); }
   catch { return value; }
+}
+function relativeTime(value) {
+  const time = parseTime(value);
+  if (!time) return 'chưa rõ thời gian';
+  const diffMs = Date.now() - time;
+  if (diffMs < -60000) return 'vừa cập nhật';
+  const minutes = Math.max(0, Math.floor(diffMs / 60000));
+  if (minutes < 1) return 'vừa xong';
+  if (minutes < 60) return `cách đây ${minutes} phút`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `cách đây ${hours} giờ`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `cách đây ${days} ngày`;
+  const months = Math.floor(days / 30);
+  return `cách đây ${months} tháng`;
+}
+function articleTime(item) {
+  return parseTime(item?.publishedAt || item?.savedAt || item?.createdAt);
+}
+function articleText(item) {
+  return `${item?.title || ''} ${item?.summary || ''} ${item?.content || ''} ${(item?.tags || []).join(' ')} ${item?.category || ''}`.toLowerCase();
+}
+function isIncidentOrAccident(item) {
+  const text = articleText(item);
+  if (['incident', 'rescue'].includes(item?.category)) return true;
+  return /cháy|hỏa hoạn|nổ|tai nạn|sự cố|cứu nạn|cứu hộ|cnch|mắc kẹt|sập|đuối nước|thương vong|thiệt mạng|va chạm|tìm kiếm cứu nạn/.test(text);
+}
+function priorityRank(item) {
+  if (!item) return 0;
+  const text = articleText(item);
+  const severe = item.severity === 'red' ? 4 : item.severity === 'orange' ? 3 : item.severity === 'yellow' ? 2 : 1;
+  const live = item.type === 'live' || item.type === 'live-api' || item.type === 'rss' ? 2 : 0;
+  const fieldHot = isIncidentOrAccident(item) ? 12 : 0;
+  const official = /cục|bộ công an|công an|chính phủ|pccc|cand/i.test(item.sourceName || '') ? 1 : 0;
+  const todayish = Date.now() - articleTime(item) <= 36 * 3600000 ? 3 : 0;
+  const explicitHot = /mới nhất|khẩn|nóng|vừa xảy ra|hiện trường/.test(text) ? 1 : 0;
+  return fieldHot + todayish + severe + live + official + explicitHot;
+}
+function sortFieldNews(items = []) {
+  return [...items].sort((a, b) => {
+    const aIncident = isIncidentOrAccident(a) ? 1 : 0;
+    const bIncident = isIncidentOrAccident(b) ? 1 : 0;
+    if (aIncident !== bIncident) return bIncident - aIncident;
+    const timeDiff = articleTime(b) - articleTime(a);
+    if (timeDiff) return timeDiff;
+    return priorityRank(b) - priorityRank(a);
+  });
+}
+function latestIncident(items = []) {
+  return sortFieldNews(items.filter(isIncidentOrAccident))[0] || sortFieldNews(items)[0] || null;
 }
 function stripHtml(html = '') {
   const div = document.createElement('div');
@@ -219,7 +274,7 @@ function guessCategory(text = '') {
   const t = text.toLowerCase();
   if (/facebook|fanpage/.test(t)) return 'facebook';
   if (/luật|nghị định|thông tư|qcvn|văn bản|quy chuẩn/.test(t)) return 'law';
-  if (/cứu nạn|cứu hộ|mắc kẹt|sập|đuối nước|tai nạn/.test(t)) return 'rescue';
+  if (/cứu nạn|cứu hộ|mắc kẹt|sập|đuối nước|tai nạn|sự cố|tìm kiếm cứu nạn|va chạm/.test(t)) return 'rescue';
   if (/bình chữa cháy|kiểm định|tem|trụ nước|thiết bị truyền tin|cơ sở dữ liệu/.test(t)) return 'equipment';
   if (/ai|iot|drone|robot|trực thăng|camera nhiệt|công nghệ|khoa học/.test(t)) return 'tech';
   if (/tổ liên gia|mô hình|điểm chữa cháy/.test(t)) return 'model';
@@ -228,8 +283,8 @@ function guessCategory(text = '') {
 }
 function guessSeverity(text = '') {
   const t = text.toLowerCase();
-  if (/tử vong|thương vong|nổ|hóa chất|chung cư|cao tầng|mắc kẹt|sập|pin lithium/.test(t)) return 'red';
-  if (/cháy lớn|kho|xưởng|lan rộng|nhiều phương tiện|gas|cứu nạn/.test(t)) return 'orange';
+  if (/tử vong|thương vong|thiệt mạng|nổ|hóa chất|chung cư|cao tầng|mắc kẹt|sập|pin lithium|tai nạn nghiêm trọng/.test(t)) return 'red';
+  if (/cháy lớn|kho|xưởng|lan rộng|nhiều phương tiện|gas|cứu nạn|cứu hộ|sự cố|tai nạn/.test(t)) return 'orange';
   if (/khuyến cáo|kiểm tra|tập huấn|diễn tập|tuyên truyền|mô hình/.test(t)) return 'yellow';
   return 'green';
 }
@@ -352,7 +407,7 @@ function mergeArticles(list) {
     seen.add(key);
     merged.push(item);
   });
-  return merged.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+  return sortFieldNews(merged);
 }
 function groupKey(text = '') {
   return String(text)
@@ -388,7 +443,7 @@ function filteredArticles() {
   if (q) {
     items = items.filter(item => `${item.title} ${item.summary} ${item.content} ${item.sourceName} ${(item.tags || []).join(' ')}`.toLowerCase().includes(q));
   }
-  return items;
+  return sortFieldNews(items);
 }
 
 function render() {
@@ -412,19 +467,23 @@ function renderMetrics() {
 }
 function renderHero() {
   const items = filteredArticles();
-  const urgent = items.find(x => x.severity === 'red') || items[0];
+  const urgent = latestIncident(items);
+  const kicker = $('#heroPanel .kicker');
   if (state.tab === 'saved') {
+    kicker.textContent = 'Kho đã lưu offline';
     $('#heroTitle').textContent = 'Kho bài đã lưu offline';
     $('#heroText').textContent = 'Các bài, hồ sơ và ghi chú đã lưu có thể đọc lại khi mất mạng.';
     return;
   }
   if (state.tab === 'equipment') {
+    kicker.textContent = 'Trang bị & kiểm định';
     $('#heroTitle').textContent = 'Trang bị, kiểm định và dữ liệu cơ sở';
     $('#heroText').textContent = 'Theo dõi bình chữa cháy, tem kiểm định, truyền tin báo cháy, kết nối dữ liệu.';
     return;
   }
+  kicker.textContent = urgent && isIncidentOrAccident(urgent) ? `Tin cháy/CNCH mới nhất · ${relativeTime(urgent.publishedAt || urgent.savedAt)}` : 'Radar hôm nay';
   $('#heroTitle').textContent = urgent ? urgent.title : 'Sẵn sàng lọc tin PCCC/CNCH';
-  $('#heroText').textContent = urgent ? urgent.summary : 'Ưu tiên nguồn chính thống, lưu nội dung quan trọng để đọc lại offline và xuất PDF.';
+  $('#heroText').textContent = urgent ? `${severityLabel(urgent.severity)} · ${urgent.sourceName || 'Nguồn chưa rõ'} · ${formatDate(urgent.publishedAt || urgent.savedAt)} · ${urgent.summary || 'Chưa có tóm tắt.'}` : 'Ưu tiên nguồn chính thống, lưu nội dung quan trọng để đọc lại offline và xuất PDF.';
 }
 function renderTabs() {
   [...$$('[data-tab]')].forEach(btn => btn.classList.toggle('active', btn.dataset.tab === state.tab));
@@ -457,28 +516,32 @@ function renderArticles() {
     return;
   }
   const items = filteredArticles();
-  $('#feedMeta').textContent = `${items.length} mục · Tab ${categoryLabel(state.tab)} · ${state.online ? 'Online' : 'Offline'}${state.lastFetchNote ? ' · ' + state.lastFetchNote : ''}`;
+  const newest = latestIncident(items);
+  $('#feedMeta').textContent = `${items.length} mục · Tin cháy/CNCH mới nhất ${newest ? relativeTime(newest.publishedAt || newest.savedAt) : 'chưa có'} · Tab ${categoryLabel(state.tab)} · ${state.online ? 'Online' : 'Offline'}${state.lastFetchNote ? ' · ' + state.lastFetchNote : ''}`;
   const list = $('#newsList');
   if (!items.length) {
     list.innerHTML = `<div class="news-card"><div class="news-thumb">EMPTY</div><div class="news-body"><h3 class="news-title">Chưa có mục phù hợp</h3><p class="news-summary">Thử đổi từ khóa, đổi tab hoặc dán bài cần lưu offline.</p></div></div>`;
     setStatus(state.online ? 'QUIET' : 'OFFLINE');
     return;
   }
-  list.innerHTML = items.map(articleCard).join('');
+  list.innerHTML = items.map((item, idx) => articleCard(item, idx)).join('');
   $$('.open-article').forEach(btn => btn.addEventListener('click', () => openArticle(btn.dataset.id, btn.dataset.store)));
   $$('.save-article').forEach(btn => btn.addEventListener('click', () => saveArticleById(btn.dataset.id)));
   $$('.copy-zalo').forEach(btn => btn.addEventListener('click', () => copyZaloById(btn.dataset.id, btn.dataset.store)));
   setStatus(state.online ? 'LIVE_RADAR' : 'OFFLINE');
 }
-function articleCard(item) {
+function articleCard(item, index = 0) {
   const store = state.saved.some(s => s.id === item.id) ? 'saved' : 'feed';
   const source = item.sourceName || 'Nguồn chưa rõ';
+  const isLatest = index === 0 && isIncidentOrAccident(item);
   const tags = (item.tags || []).slice(0, 3).map(t => `<span class="badge blue">${escapeHtml(t)}</span>`).join('');
+  const timeText = relativeTime(item.publishedAt || item.savedAt);
   return `
-    <article class="news-card">
-      <div class="news-thumb">${escapeHtml(categoryLabel(item.category)).replace(' ', '<br>')}</div>
+    <article class="news-card ${isLatest ? 'latest-card' : ''}">
+      <div class="news-thumb">${isLatest ? 'MỚI<br>NHẤT' : escapeHtml(categoryLabel(item.category)).replace(' ', '<br>')}</div>
       <div class="news-body">
-        <div class="news-meta"><span class="badge ${severityClass(item.severity)}">${severityLabel(item.severity)}</span><span>${escapeHtml(source)}</span><span>${formatDate(item.publishedAt || item.savedAt)}</span></div>
+        ${isLatest ? '<div class="breaking-label">TIN CHÁY / TAI NẠN SỰ CỐ MỚI NHẤT</div>' : ''}
+        <div class="news-meta"><span class="badge ${severityClass(item.severity)}">${severityLabel(item.severity)}</span><span class="time-pill">${timeText}</span><span>${escapeHtml(source)}</span><span>${formatDate(item.publishedAt || item.savedAt)}</span></div>
         <h3 class="news-title">${escapeHtml(item.title)}</h3>
         <p class="news-summary">${escapeHtml(item.summary || item.content || 'Chưa có tóm tắt.')}</p>
         <div class="news-meta">${tags}</div>
@@ -625,7 +688,7 @@ function openArticle(id, store = 'feed') {
 }
 function articleDetailHtml(article) {
   return `
-    <div class="news-meta"><span class="badge ${severityClass(article.severity)}">${severityLabel(article.severity)}</span><span>${escapeHtml(categoryLabel(article.category))}</span><span>${escapeHtml(article.sourceName || 'Nguồn chưa rõ')}</span><span>${formatDate(article.publishedAt || article.savedAt)}</span></div>
+    <div class="news-meta"><span class="badge ${severityClass(article.severity)}">${severityLabel(article.severity)}</span><span class="time-pill">${relativeTime(article.publishedAt || article.savedAt)}</span><span>${escapeHtml(categoryLabel(article.category))}</span><span>${escapeHtml(article.sourceName || 'Nguồn chưa rõ')}</span><span>${formatDate(article.publishedAt || article.savedAt)}</span></div>
     <h2>${escapeHtml(article.title)}</h2>
     <p class="hint">${escapeHtml(article.summary || 'Chưa có tóm tắt.')}</p>
     <div class="lesson-box"><strong>Bài học PCCC/CNCH</strong><p>${escapeHtml(article.lessons || suggestLesson(article.title, article.content))}</p></div>
