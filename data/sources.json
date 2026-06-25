@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "updatedAt": "2026-06-26",
   "sources": [
     {
@@ -11,6 +11,15 @@
       "url": "https://canhsatpccc.gov.vn/",
       "rss": "https://canhsatpccc.gov.vn/vi/news/rss/",
       "searchUrl": "https://www.google.com/search?q=site%3Acanhsatpccc.gov.vn+PCCC+CNCH+cháy+nổ"
+    },
+    {
+      "id": "google-news-live-pccc",
+      "name": "Google News Live - Cháy nổ/PCCC/CNCH",
+      "type": "live-search",
+      "category": "incident",
+      "priority": 1,
+      "url": "https://news.google.com/search?q=%28ch%C3%A1y%20OR%20h%E1%BB%8Fa%20ho%E1%BA%A1n%20OR%20PCCC%20OR%20CNCH%29%20Vi%E1%BB%87t%20Nam%20when%3A1d&hl=vi&gl=VN&ceid=VN%3Avi",
+      "searchUrl": "https://news.google.com/search?q=%28ch%C3%A1y%20OR%20h%E1%BB%8Fa%20ho%E1%BA%A1n%20OR%20PCCC%20OR%20CNCH%29%20Vi%E1%BB%87t%20Nam%20when%3A1d&hl=vi&gl=VN&ceid=VN%3Avi"
     },
     {
       "id": "bocongan",

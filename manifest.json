@@ -1,7 +1,7 @@
 {
-  "name": "PCCC News Radar",
+  "name": "PCCC News Radar Field Pro",
   "short_name": "PCCC Radar",
-  "description": "Radar tin PCCC/CNCH, lưu offline, xuất PDF, chia sẻ Zalo và quản lý trang bị kiểm định.",
+  "description": "PWA Field Pro cho tin PCCC/CNCH, hồ sơ vụ việc, checklist, thiết bị, PDF và Zalo.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

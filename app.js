@@ -1,8 +1,8 @@
-/* PCCC News Radar V1.0.0 - Static PWA */
-const APP_VERSION = '1.0.0';
-const CACHE_NAME = 'pccc-news-radar-cache-v1.0.0';
+/* PCCC News Radar V1.1.0 Field Pro - Static PWA */
+const APP_VERSION = '1.1.0';
+const CACHE_NAME = 'pccc-news-radar-cache-v1.1.0';
 const DB_NAME = 'pccc_news_radar_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const LS_SETTINGS = 'pccc_radar_settings';
 const LS_VERSION = 'pccc_radar_version';
 const LS_HISTORY = 'pccc_radar_history';
@@ -15,6 +15,11 @@ const state = {
   feed: [],
   saved: [],
   equipment: [],
+  incidents: [],
+  checklistRuns: [],
+  milestones: [],
+  sourceHealth: [],
+  duplicateGroups: [],
   sources: [],
   keywords: [],
   currentArticle: null,
@@ -44,7 +49,7 @@ function escapeHtml(text = '') {
   return String(text).replace(/[&<>'"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[ch]));
 }
 function categoryLabel(category) {
-  const map = { all: 'Tất cả', incident: 'Cháy nổ', rescue: 'CNCH', law: 'Pháp quy', facebook: 'Facebook', tech: 'Công nghệ', model: 'Mô hình', equipment: 'Trang bị', data: 'Dữ liệu PCCC', saved: 'Đã lưu' };
+  const map = { all: 'Tất cả', incident: 'Cháy nổ', rescue: 'CNCH', law: 'Pháp quy', facebook: 'Facebook', tech: 'Công nghệ', model: 'Mô hình', equipment: 'Trang bị', data: 'Dữ liệu PCCC', 'incident-log': 'Vụ việc', checklist: 'Checklist', milestones: 'Mốc', saved: 'Đã lưu' };
   return map[category] || category || 'Khác';
 }
 function severityLabel(severity) {
@@ -59,6 +64,8 @@ function sloganByStatus(status) {
     OFFLINE: 'Không mạng vẫn còn sổ tay.',
     ARTICLE_SAVED: 'Đã lưu là còn dùng được.',
     PDF_READY: 'Một bài hay, thành một hồ sơ đẹp.',
+    FIELD_PRO: 'Tin vào app, nhưng nghề nằm ở hồ sơ và checklist.',
+    DUPLICATE_GROUPED: 'Một vụ nhiều nguồn, ưu tiên nguồn chính thống.',
     SOURCE_ERROR: 'Nguồn lỗi, tay nghề vẫn không dừng.',
     READY: 'Mở radar, giữ nghề tỉnh.'
   };
@@ -90,6 +97,21 @@ function openDb() {
         const equipment = db.createObjectStore('equipment', { keyPath: 'id' });
         equipment.createIndex('createdAt', 'createdAt');
         equipment.createIndex('type', 'type');
+      }
+      if (!db.objectStoreNames.contains('incidents')) {
+        const incidents = db.createObjectStore('incidents', { keyPath: 'id' });
+        incidents.createIndex('createdAt', 'createdAt');
+        incidents.createIndex('severity', 'severity');
+      }
+      if (!db.objectStoreNames.contains('checklistRuns')) {
+        const runs = db.createObjectStore('checklistRuns', { keyPath: 'id' });
+        runs.createIndex('createdAt', 'createdAt');
+        runs.createIndex('template', 'template');
+      }
+      if (!db.objectStoreNames.contains('milestones')) {
+        const milestones = db.createObjectStore('milestones', { keyPath: 'id' });
+        milestones.createIndex('dueDate', 'dueDate');
+        milestones.createIndex('status', 'status');
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -227,15 +249,53 @@ function suggestLesson(title, content = '') {
 async function loadSaved() {
   state.saved = (await dbAll('articles')).sort((a, b) => (b.savedAt || '').localeCompare(a.savedAt || ''));
   state.equipment = (await dbAll('equipment')).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  state.incidents = (await dbAll('incidents')).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  state.checklistRuns = (await dbAll('checklistRuns')).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  state.milestones = (await dbAll('milestones')).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
 }
 
 async function refreshLiveFeeds() {
-  setStatus('LIVE_RADAR', 'Đang thử lấy nguồn công khai; nguồn lỗi sẽ có link mở thủ công.');
+  setStatus('LIVE_RADAR', 'Đang lấy Tin mới thật: Vercel Live API trước, RSS/public feed sau.');
   $('#refreshBtn').disabled = true;
-  $('#refreshBtn').textContent = 'Đang cập nhật...';
-  const rssSources = state.sources.filter(s => s.rss).slice(0, 3);
+  $('#refreshBtn').textContent = 'Đang lấy tin nóng...';
   const fetched = [];
   const errors = [];
+
+  try {
+    const apiRes = await fetch(`api/live-news?t=${Date.now()}`, { cache: 'no-store' });
+    if (!apiRes.ok) throw new Error(`Live API HTTP ${apiRes.status}`);
+    const payload = await apiRes.json();
+    if (Array.isArray(payload.items) && payload.items.length) {
+      fetched.push(...payload.items.map(item => normalizeArticle({ ...item, type: 'live-api' })));
+      state.sourceHealth = (payload.sources || []).map(s => ({ ...s, at: nowIso(), status: s.error ? 'error' : 'ok' }));
+      if (payload.errors?.length) errors.push(...payload.errors.slice(0, 3));
+    } else {
+      throw new Error('Live API chưa trả về tin mới');
+    }
+  } catch (err) {
+    errors.push(`Live API: ${err.message}`);
+    const rssItems = await refreshRssFallback(errors);
+    fetched.push(...rssItems);
+  }
+
+  const merged = mergeArticles([...fetched, ...state.feed]);
+  state.feed = merged;
+  state.duplicateGroups = buildDuplicateGroups([...fetched, ...state.feed]);
+  if (fetched.length) {
+    state.lastFetchNote = `Đã cập nhật ${fetched.length} tin/mục mới. ${errors.length ? 'Có nguồn phụ lỗi: ' + errors.slice(0, 2).join('; ') : 'Ưu tiên tin mới qua Live API/RSS.'}`;
+    setStatus('LIVE_RADAR', state.lastFetchNote);
+  } else {
+    state.lastFetchNote = `Chưa kéo được tin tự động. Hãy bấm “Mở tìm tin nóng” để tìm trực tiếp trên nguồn mới nhất. ${errors.slice(0, 2).join('; ')}`;
+    setStatus('SOURCE_ERROR', state.lastFetchNote);
+  }
+  $('#refreshBtn').disabled = false;
+  $('#refreshBtn').textContent = 'Cập nhật nóng';
+  render();
+}
+
+async function refreshRssFallback(errors = []) {
+  const rssSources = state.sources.filter(s => s.rss).slice(0, 5);
+  const fetched = [];
   for (const source of rssSources) {
     try {
       const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(source.rss)}`;
@@ -247,13 +307,18 @@ async function refreshLiveFeeds() {
       errors.push(`${source.name}: ${err.message}`);
     }
   }
-  const merged = mergeArticles([...fetched, ...state.feed]);
-  state.feed = merged;
-  state.lastFetchNote = errors.length ? `Một số nguồn không đọc trực tiếp được: ${errors.join('; ')}` : `Đã cập nhật ${fetched.length} mục từ RSS/public feed.`;
-  setStatus(errors.length ? 'SOURCE_ERROR' : 'LIVE_RADAR', state.lastFetchNote);
-  $('#refreshBtn').disabled = false;
-  $('#refreshBtn').textContent = 'Cập nhật';
-  render();
+  return fetched;
+}
+
+function openHotSearch() {
+  const query = encodeURIComponent('(cháy OR hỏa hoạn OR PCCC OR CNCH OR cứu nạn cứu hộ) Việt Nam when:1d');
+  const urls = [
+    `https://news.google.com/search?q=${query}&hl=vi&gl=VN&ceid=VN:vi`,
+    'https://www.google.com/search?q=site%3Acanhsatpccc.gov.vn+PCCC+CNCH+ch%C3%A1y+n%E1%BB%95&tbm=nws',
+    'https://www.facebook.com/search/posts?q=PCCC%20CNCH%20ch%C3%A1y%20n%E1%BB%95'
+  ];
+  urls.forEach((url, idx) => setTimeout(() => window.open(url, '_blank', 'noopener'), idx * 250));
+  toast('Đã mở các luồng tìm tin nóng');
 }
 
 function parseRss(xmlText, source) {
@@ -289,6 +354,31 @@ function mergeArticles(list) {
   });
   return merged.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 }
+function groupKey(text = '') {
+  return String(text)
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !['trong','dong','cong','chay','pccc','cnch','viet','nam','moi','nhat','nguoi','ngay'].includes(w))
+    .slice(0, 7)
+    .sort()
+    .join('|');
+}
+function buildDuplicateGroups(list) {
+  const map = new Map();
+  list.forEach(item => {
+    const key = groupKey(item.title + ' ' + (item.summary || ''));
+    if (!key) return;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(item);
+  });
+  return Array.from(map.entries())
+    .map(([key, items]) => ({ key, items, count: items.length, title: items[0]?.title || 'Nhóm tin' }))
+    .filter(group => group.count > 1)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+}
 
 function filteredArticles() {
   let items = state.tab === 'saved' ? state.saved : state.feed;
@@ -306,12 +396,19 @@ function render() {
   renderTabs();
   renderArticles();
   renderEquipment();
+  renderFieldProDashboard();
+  renderIncidents();
+  renderChecklists();
+  renderMilestones();
   renderHero();
 }
 function renderMetrics() {
   $('#metricNews').textContent = state.feed.length;
   $('#metricSaved').textContent = state.saved.length;
   $('#metricEquipment').textContent = state.equipment.length;
+  const urgent = state.feed.filter(x => x.severity === 'red').length;
+  const metricUrgent = $('#metricUrgent');
+  if (metricUrgent) metricUrgent.textContent = urgent;
 }
 function renderHero() {
   const items = filteredArticles();
@@ -332,6 +429,9 @@ function renderHero() {
 function renderTabs() {
   [...$$('[data-tab]')].forEach(btn => btn.classList.toggle('active', btn.dataset.tab === state.tab));
   $('#equipmentSection').classList.toggle('hidden', state.tab !== 'equipment');
+  $('#incidentSection')?.classList.toggle('hidden', state.tab !== 'incident-log');
+  $('#checklistSection')?.classList.toggle('hidden', state.tab !== 'checklist');
+  $('#milestoneSection')?.classList.toggle('hidden', state.tab !== 'milestones' && state.tab !== 'law' && state.tab !== 'data');
 }
 function renderSources() {
   $('#sourceList').innerHTML = state.sources.map(src => `
@@ -352,6 +452,10 @@ function renderKeywords() {
   }));
 }
 function renderArticles() {
+  if (['incident-log', 'checklist', 'milestones'].includes(state.tab)) {
+    renderSpecialFeed();
+    return;
+  }
   const items = filteredArticles();
   $('#feedMeta').textContent = `${items.length} mục · Tab ${categoryLabel(state.tab)} · ${state.online ? 'Online' : 'Offline'}${state.lastFetchNote ? ' · ' + state.lastFetchNote : ''}`;
   const list = $('#newsList');
@@ -387,6 +491,94 @@ function articleCard(item) {
       </div>
     </article>
   `;
+}
+
+function renderIncidents() {
+  const el = $('#incidentList');
+  if (!el) return;
+  el.innerHTML = state.incidents.length ? state.incidents.map(item => `<div class="equipment-card"><div class="news-meta"><span class="badge ${severityClass(item.severity)}">${severityLabel(item.severity)}</span><span>${escapeHtml(item.location || 'Chưa rõ')}</span><span>${formatDate(item.createdAt)}</span></div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.summary || item.lesson || 'Chưa có tóm tắt.')}</p><div class="news-actions"><button data-print-incident="${escapeHtml(item.id)}">Xuất PDF</button><button data-copy-incident="${escapeHtml(item.id)}">Copy Zalo</button><button data-delete-incident="${escapeHtml(item.id)}">Xóa</button></div></div>`).join('') : '<div class="equipment-card"><h4>Chưa có hồ sơ vụ việc</h4><p>Bấm “＋ Hồ sơ vụ việc” để lưu bài học sau vụ cháy/CNCH.</p></div>';
+  bindIncidentButtons();
+}
+function renderChecklists() {
+  const el = $('#checklistList');
+  if (!el) return;
+  el.innerHTML = state.checklistRuns.length ? state.checklistRuns.map(item => `<div class="equipment-card"><div class="news-meta"><span class="badge blue">${escapeHtml(item.template)}</span><span>${formatDate(item.createdAt)}</span></div><h4>${escapeHtml(item.facility || 'Checklist cơ sở')}</h4><p>${escapeHtml(item.notes || 'Phiếu rà soát nhanh.')}</p><div class="news-actions"><button data-print-checklist="${escapeHtml(item.id)}">Xuất PDF</button><button data-copy-checklist="${escapeHtml(item.id)}">Copy Zalo</button><button data-delete-checklist="${escapeHtml(item.id)}">Xóa</button></div></div>`).join('') : '<div class="equipment-card"><h4>Chưa có checklist</h4><p>Bấm “＋ Checklist cơ sở” để tạo phiếu rà soát nhanh.</p></div>';
+  bindChecklistButtons();
+}
+function renderMilestones() {
+  const el = $('#milestoneList');
+  if (!el) return;
+  el.innerHTML = state.milestones.length ? state.milestones.map(item => `<div class="equipment-card"><div class="news-meta"><span class="badge green">${escapeHtml(item.type || 'Mốc')}</span><span>${escapeHtml(item.dueDate || 'Chưa ghi ngày')}</span></div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.notes || 'Không có ghi chú.')}</p><div class="news-actions"><button data-copy-milestone="${escapeHtml(item.id)}">Copy Zalo</button><button data-delete-milestone="${escapeHtml(item.id)}">Xóa</button></div></div>`).join('') : '<div class="equipment-card"><h4>Chưa có mốc cần nhớ</h4><p>Bấm “＋ Mốc cần nhớ” để lưu hạn kiểm định, dữ liệu, văn bản.</p></div>';
+  bindMilestoneButtons();
+}
+function renderSpecialFeed() {
+  const list = $('#newsList');
+  if (state.tab === 'incident-log') {
+    $('#feedMeta').textContent = `${state.incidents.length} hồ sơ vụ việc · Có thể xuất PDF/copy Zalo`;
+    list.innerHTML = state.incidents.length ? state.incidents.map(incidentCard).join('') : '<div class="news-card"><div class="news-thumb">VỤ<br>VIỆC</div><div class="news-body"><h3 class="news-title">Chưa có hồ sơ vụ việc</h3><p class="news-summary">Bấm “＋ Hồ sơ vụ việc” để biến tin đã đọc thành hồ sơ nghiệp vụ.</p></div></div>';
+    bindIncidentButtons();
+    setStatus('FIELD_PRO', 'Hồ sơ hóa vụ việc để không mất bài học sau tin nóng.');
+  }
+  if (state.tab === 'checklist') {
+    $('#feedMeta').textContent = `${state.checklistRuns.length} checklist đã lưu · Dùng cho rà soát cơ sở`;
+    list.innerHTML = state.checklistRuns.length ? state.checklistRuns.map(checklistCard).join('') : '<div class="news-card"><div class="news-thumb">CHECK<br>LIST</div><div class="news-body"><h3 class="news-title">Chưa có checklist</h3><p class="news-summary">Bấm “＋ Checklist cơ sở” để tạo phiếu rà soát nhanh.</p></div></div>';
+    bindChecklistButtons();
+    setStatus('FIELD_PRO', 'Checklist nhỏ, giảm sót việc lớn.');
+  }
+  if (state.tab === 'milestones') {
+    $('#feedMeta').textContent = `${state.milestones.length} mốc đang theo dõi · Pháp quy/dữ liệu/kiểm định`;
+    list.innerHTML = state.milestones.length ? state.milestones.map(milestoneCard).join('') : '<div class="news-card"><div class="news-thumb">MỐC</div><div class="news-body"><h3 class="news-title">Chưa có mốc cần nhớ</h3><p class="news-summary">Bấm “＋ Mốc cần nhớ” để lưu ngày kiểm định, kết nối dữ liệu, đọc văn bản.</p></div></div>';
+    bindMilestoneButtons();
+    setStatus('FIELD_PRO', 'Mốc rõ thì việc không trôi.');
+  }
+}
+function renderFieldProDashboard() {
+  const panel = $('#fieldProPanel');
+  if (!panel) return;
+  const red = state.feed.filter(x => x.severity === 'red').length;
+  const official = state.feed.filter(x => /cục|bộ công an|công an|chính phủ|pccc/i.test(x.sourceName || '')).length;
+  const sourceOk = state.sourceHealth.filter(x => x.status === 'ok').length;
+  const sourceErr = state.sourceHealth.filter(x => x.status === 'error').length;
+  $('#proUrgentCount').textContent = red;
+  $('#proOfficialCount').textContent = official;
+  $('#proDuplicateCount').textContent = state.duplicateGroups.length;
+  $('#proSourceCount').textContent = state.sourceHealth.length ? `${sourceOk}/${state.sourceHealth.length}` : '—';
+  $('#sourceHealthList').innerHTML = state.sourceHealth.length ? state.sourceHealth.slice(0, 8).map(s => `<div class="mini-row"><span class="dot ${s.status === 'ok' ? 'ok' : 'bad'}"></span><strong>${escapeHtml(s.name || s.source || 'Nguồn')}</strong><small>${escapeHtml(s.status === 'ok' ? 'OK' : 'Lỗi')}</small></div>`).join('') : '<p class="hint">Chưa có dữ liệu nguồn live. Bấm “Cập nhật nóng” sau khi deploy Vercel.</p>';
+  $('#duplicateList').innerHTML = state.duplicateGroups.length ? state.duplicateGroups.map(g => `<div class="mini-row"><strong>${escapeHtml(g.title)}</strong><small>${g.count} nguồn cùng vụ</small></div>`).join('') : '<p class="hint">Chưa phát hiện nhóm tin trùng.</p>';
+}
+function incidentCard(item) {
+  return `<article class="news-card"><div class="news-thumb">VỤ<br>VIỆC</div><div class="news-body"><div class="news-meta"><span class="badge ${severityClass(item.severity)}">${severityLabel(item.severity)}</span><span>${escapeHtml(item.location || 'Chưa rõ địa điểm')}</span><span>${formatDate(item.createdAt)}</span></div><h3 class="news-title">${escapeHtml(item.title)}</h3><p class="news-summary">${escapeHtml(item.summary || item.lesson || 'Chưa có tóm tắt.')}</p><div class="news-actions"><button data-print-incident="${escapeHtml(item.id)}">Xuất PDF</button><button data-copy-incident="${escapeHtml(item.id)}">Copy Zalo</button><button data-delete-incident="${escapeHtml(item.id)}">Xóa</button></div></div></article>`;
+}
+function checklistCard(item) {
+  const done = (item.items || []).filter(x => x.status === 'ok').length;
+  return `<article class="news-card"><div class="news-thumb">CHECK<br>LIST</div><div class="news-body"><div class="news-meta"><span class="badge blue">${escapeHtml(item.template)}</span><span>${done}/${(item.items || []).length} đạt</span><span>${formatDate(item.createdAt)}</span></div><h3 class="news-title">${escapeHtml(item.facility || 'Checklist cơ sở')}</h3><p class="news-summary">${escapeHtml(item.notes || 'Phiếu rà soát nhanh phục vụ ghi nhớ nội bộ.')}</p><div class="news-actions"><button data-print-checklist="${escapeHtml(item.id)}">Xuất PDF</button><button data-copy-checklist="${escapeHtml(item.id)}">Copy Zalo</button><button data-delete-checklist="${escapeHtml(item.id)}">Xóa</button></div></div></article>`;
+}
+function milestoneCard(item) {
+  const due = item.dueDate ? new Date(item.dueDate) : null;
+  const days = due ? Math.ceil((due - new Date()) / 86400000) : null;
+  const badge = days !== null && days < 0 ? 'red' : days !== null && days <= 30 ? 'orange' : 'green';
+  return `<article class="news-card"><div class="news-thumb">MỐC</div><div class="news-body"><div class="news-meta"><span class="badge ${badge}">${days === null ? 'Chưa rõ' : days < 0 ? 'Quá hạn' : days + ' ngày'}</span><span>${escapeHtml(item.type || 'Mốc công việc')}</span><span>${escapeHtml(item.dueDate || 'Chưa ghi ngày')}</span></div><h3 class="news-title">${escapeHtml(item.title)}</h3><p class="news-summary">${escapeHtml(item.notes || 'Không có ghi chú.')}</p><div class="news-actions"><button data-copy-milestone="${escapeHtml(item.id)}">Copy Zalo</button><button data-delete-milestone="${escapeHtml(item.id)}">Xóa</button></div></div></article>`;
+}
+function bindIncidentButtons() {
+  $$('[data-print-incident]').forEach(btn => btn.addEventListener('click', () => printIncident(btn.dataset.printIncident)));
+  $$('[data-copy-incident]').forEach(btn => btn.addEventListener('click', () => copyIncident(btn.dataset.copyIncident)));
+  $$('[data-delete-incident]').forEach(btn => btn.addEventListener('click', () => deleteRecord('incidents', btn.dataset.deleteIncident, 'Đã xóa hồ sơ vụ việc')));
+}
+function bindChecklistButtons() {
+  $$('[data-print-checklist]').forEach(btn => btn.addEventListener('click', () => printChecklist(btn.dataset.printChecklist)));
+  $$('[data-copy-checklist]').forEach(btn => btn.addEventListener('click', () => copyChecklist(btn.dataset.copyChecklist)));
+  $$('[data-delete-checklist]').forEach(btn => btn.addEventListener('click', () => deleteRecord('checklistRuns', btn.dataset.deleteChecklist, 'Đã xóa checklist')));
+}
+function bindMilestoneButtons() {
+  $$('[data-copy-milestone]').forEach(btn => btn.addEventListener('click', () => copyMilestone(btn.dataset.copyMilestone)));
+  $$('[data-delete-milestone]').forEach(btn => btn.addEventListener('click', () => deleteRecord('milestones', btn.dataset.deleteMilestone, 'Đã xóa mốc')));
+}
+async function deleteRecord(store, id, message) {
+  if (!confirm('Xóa mục này?')) return;
+  await dbDelete(store, id);
+  await loadSaved();
+  render();
+  toast(message || 'Đã xóa');
 }
 function renderEquipment() {
   const list = $('#equipmentList');
@@ -597,6 +789,91 @@ function copyEquipment(id) {
   copyText(`[PCCC RADAR] Hồ sơ thiết bị/cơ sở\n\nTên: ${item.name}\nLoại: ${item.type}\nTrạng thái: ${equipmentStatusLabel(item.status)}\nVị trí: ${item.location || 'Chưa ghi'}\nMã/Serial: ${item.serial || 'Chưa ghi'}\nNgày kiểm định/khai báo: ${item.checkedAt || 'Chưa ghi'}\nKiểm tra lại: ${item.nextCheckAt || 'Chưa ghi'}\nGhi chú: ${item.notes || 'Không có'}`, 'Đã copy hồ sơ Zalo');
 }
 
+
+const CHECKLIST_TEMPLATES = {
+  'Nhà ở kết hợp kinh doanh': ['Lối thoát nạn không bị khóa/chặn', 'Có phương án thoát nạn tầng cao', 'Hệ thống điện không quá tải', 'Bình chữa cháy dễ thấy/dễ lấy', 'Có báo cháy/cảnh báo ban đầu', 'Hàng hóa không chắn lối đi', 'Người trong nhà biết gọi 114'],
+  'Chung cư mini / nhà trọ': ['Lối thoát nạn thứ hai hoặc giải pháp thay thế', 'Đèn sự cố/chỉ dẫn thoát nạn', 'Khu sạc xe/pin được kiểm soát', 'Bình chữa cháy theo tầng', 'Cửa ngăn cháy/lối thoát không bị chèn', 'Danh sách cư dân/điểm tập kết', 'Tuyên truyền kỹ năng thoát nạn'],
+  'Kho xưởng': ['Nguồn điện/tủ điện được kiểm tra', 'Khoảng cách an toàn hàng hóa', 'Nguồn nước chữa cháy', 'Lối xe chữa cháy tiếp cận', 'Phương án cắt điện', 'Huấn luyện lực lượng tại chỗ', 'Quản lý hóa chất/vật liệu dễ cháy'],
+  'Cơ sở có thiết bị truyền tin': ['Thông tin cơ sở đã khai báo', 'Thiết bị truyền tin hoạt động', 'Người phụ trách nhận cảnh báo', 'Có lịch kiểm tra kết nối', 'Dữ liệu thay đổi được cập nhật', 'Hồ sơ lưu tại cơ sở']
+};
+async function handleIncidentSubmit(event) {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const incident = { id: uid('incident'), ...data, createdAt: nowIso(), updatedAt: nowIso(), severity: data.severity || 'orange' };
+  await dbPut('incidents', incident);
+  await loadSaved();
+  state.tab = 'incident-log';
+  render();
+  $('#incidentDialog').close();
+  event.currentTarget.reset();
+  toast('Đã lưu hồ sơ vụ việc');
+}
+async function handleChecklistSubmit(event) {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const template = data.template || 'Nhà ở kết hợp kinh doanh';
+  const raw = (data.itemsText || '').trim();
+  const names = raw ? raw.split('\n').map(x => x.trim()).filter(Boolean) : (CHECKLIST_TEMPLATES[template] || CHECKLIST_TEMPLATES['Nhà ở kết hợp kinh doanh']);
+  const run = { id: uid('check'), template, facility: data.facility, notes: data.notes, createdAt: nowIso(), items: names.map(name => ({ name, status: 'review' })) };
+  await dbPut('checklistRuns', run);
+  await loadSaved();
+  state.tab = 'checklist';
+  render();
+  $('#checklistDialog').close();
+  event.currentTarget.reset();
+  toast('Đã lưu checklist cơ sở');
+}
+async function handleMilestoneSubmit(event) {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const milestone = { id: uid('milestone'), ...data, createdAt: nowIso(), status: data.status || 'open' };
+  await dbPut('milestones', milestone);
+  await loadSaved();
+  state.tab = 'milestones';
+  render();
+  $('#milestoneDialog').close();
+  event.currentTarget.reset();
+  toast('Đã lưu mốc cần nhớ');
+}
+function copyIncident(id) {
+  const item = state.incidents.find(x => x.id === id);
+  if (!item) return toast('Không tìm thấy hồ sơ');
+  copyText(`[PCCC RADAR] Hồ sơ vụ việc\n\nVụ việc: ${item.title}\nĐịa điểm: ${item.location || 'Chưa rõ'}\nThời gian: ${item.eventTime || 'Chưa rõ'}\nMức độ: ${severityLabel(item.severity)}\nLoại hình: ${item.facilityType || 'Chưa phân loại'}\nTóm tắt: ${item.summary || ''}\nBài học: ${item.lesson || ''}\nNguồn: ${item.source || 'Chưa ghi'}`, 'Đã copy hồ sơ vụ việc');
+}
+function copyChecklist(id) {
+  const item = state.checklistRuns.find(x => x.id === id);
+  if (!item) return toast('Không tìm thấy checklist');
+  const lines = (item.items || []).map((x, i) => `${i + 1}. ${x.name}: ${x.status === 'ok' ? 'Đạt' : 'Cần rà soát'}`).join('\n');
+  copyText(`[PCCC RADAR] Checklist cơ sở\n\nCơ sở: ${item.facility || 'Chưa ghi'}\nMẫu: ${item.template}\n${lines}\nGhi chú: ${item.notes || 'Không có'}`, 'Đã copy checklist');
+}
+function copyMilestone(id) {
+  const item = state.milestones.find(x => x.id === id);
+  if (!item) return toast('Không tìm thấy mốc');
+  copyText(`[PCCC RADAR] Mốc cần nhớ\n\nViệc: ${item.title}\nNgày: ${item.dueDate || 'Chưa ghi'}\nNhóm: ${item.type || 'Công việc'}\nGhi chú: ${item.notes || 'Không có'}`, 'Đã copy mốc cần nhớ');
+}
+function printIncident(id) {
+  const item = state.incidents.find(x => x.id === id);
+  if (!item) return toast('Không tìm thấy hồ sơ');
+  $('#printArea').innerHTML = `<section class="pdf-sheet"><div class="pdf-header"><h1>PCCC NEWS RADAR</h1><p>Hồ sơ vụ việc / bài học nghiệp vụ</p></div><h2 class="pdf-title">${escapeHtml(item.title)}</h2><div class="pdf-meta"><strong>Địa điểm</strong><span>${escapeHtml(item.location || 'Chưa rõ')}</span><strong>Thời gian</strong><span>${escapeHtml(item.eventTime || 'Chưa rõ')}</span><strong>Mức độ</strong><span>${escapeHtml(severityLabel(item.severity))}</span><strong>Loại hình</strong><span>${escapeHtml(item.facilityType || 'Chưa phân loại')}</span><strong>Nguồn</strong><span>${escapeHtml(item.source || 'Chưa ghi')}</span></div><div class="pdf-section"><h2>Tóm tắt vụ việc</h2><p>${escapeHtml(item.summary || '')}</p></div><div class="pdf-section"><h2>Bài học PCCC/CNCH</h2><p>${escapeHtml(item.lesson || '')}</p></div><div class="pdf-section"><h2>Việc cần theo dõi</h2><p>${escapeHtml(item.followUp || 'Chưa ghi.')}</p></div><div class="pdf-footer">Tài liệu ghi nhớ nội bộ, cần đối chiếu nguồn/văn bản chính thức.</div></section>`;
+  doPrint();
+}
+function printChecklist(id) {
+  const item = state.checklistRuns.find(x => x.id === id);
+  if (!item) return toast('Không tìm thấy checklist');
+  const rows = (item.items || []).map((x, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(x.name)}</td><td>Cần rà soát</td></tr>`).join('');
+  $('#printArea').innerHTML = `<section class="pdf-sheet"><div class="pdf-header"><h1>PCCC NEWS RADAR</h1><p>Checklist rà soát cơ sở</p></div><h2 class="pdf-title">${escapeHtml(item.facility || 'Checklist cơ sở')}</h2><div class="pdf-meta"><strong>Mẫu</strong><span>${escapeHtml(item.template)}</span><strong>Ngày tạo</strong><span>${formatDate(item.createdAt)}</span></div><table class="pdf-table"><thead><tr><th>#</th><th>Nội dung kiểm tra</th><th>Trạng thái</th></tr></thead><tbody>${rows}</tbody></table><div class="pdf-section"><h2>Ghi chú</h2><p>${escapeHtml(item.notes || 'Không có')}</p></div><div class="pdf-footer">Checklist hỗ trợ ghi nhớ, không thay thế biên bản/biểu mẫu chính thức.</div></section>`;
+  doPrint();
+}
+function exportDailyReport() {
+  const urgent = state.feed.filter(x => x.severity === 'red').slice(0, 5);
+  const saved = state.saved.slice(0, 5);
+  $('#printArea').innerHTML = `<section class="pdf-sheet"><div class="pdf-header"><h1>PCCC NEWS RADAR</h1><p>Bản tin nhanh phục vụ công tác · ${formatDate(nowIso())}</p></div><div class="pdf-section"><h2>Tin đỏ cần chú ý</h2>${urgent.map(x => `<p><strong>${escapeHtml(x.title)}</strong><br>${escapeHtml(x.summary || '')}</p>`).join('') || '<p>Chưa có tin đỏ.</p>'}</div><div class="pdf-section"><h2>Bài/hồ sơ đã lưu gần đây</h2>${saved.map(x => `<p><strong>${escapeHtml(x.title)}</strong><br>${escapeHtml(x.lessons || '')}</p>`).join('') || '<p>Chưa có bài đã lưu.</p>'}</div><div class="pdf-section"><h2>Ghi chú</h2><p>Nguồn cần ưu tiên đối chiếu: cơ quan quản lý nhà nước, Cục Cảnh sát PCCC và CNCH, Bộ Công an, Công an địa phương và văn bản chính thức.</p></div></section>`;
+  doPrint();
+}
+function copyDailyReport() {
+  const urgent = state.feed.filter(x => x.severity === 'red').slice(0, 3).map((x, i) => `${i + 1}. ${x.title} — ${x.sourceName}`).join('\n') || 'Chưa có tin đỏ.';
+  copyText(`[PCCC RADAR] Bản tin nhanh hôm nay\n\nTin đỏ cần chú ý:\n${urgent}\n\nĐã lưu offline: ${state.saved.length}\nHồ sơ vụ việc: ${state.incidents.length}\nChecklist: ${state.checklistRuns.length}\nThiết bị/hồ sơ: ${state.equipment.length}`, 'Đã copy báo cáo ngày');
+}
 async function exportData() {
   const payload = {
     app: 'PCCC News Radar',
@@ -605,6 +882,9 @@ async function exportData() {
     settings: state.settings,
     articles: await dbAll('articles'),
     equipment: await dbAll('equipment'),
+    incidents: await dbAll('incidents'),
+    checklistRuns: await dbAll('checklistRuns'),
+    milestones: await dbAll('milestones'),
     history: JSON.parse(localStorage.getItem(LS_HISTORY) || '[]')
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -623,6 +903,9 @@ async function importData(file) {
   if (!payload || !Array.isArray(payload.articles)) throw new Error('File JSON không đúng định dạng');
   for (const article of payload.articles) await dbPut('articles', article);
   for (const item of (payload.equipment || [])) await dbPut('equipment', item);
+  for (const item of (payload.incidents || [])) await dbPut('incidents', item);
+  for (const item of (payload.checklistRuns || [])) await dbPut('checklistRuns', item);
+  for (const item of (payload.milestones || [])) await dbPut('milestones', item);
   if (payload.settings) {
     state.settings = { ...state.settings, ...payload.settings };
     saveSettings();
@@ -635,6 +918,7 @@ async function importData(file) {
 
 function bindEvents() {
   $('#refreshBtn').addEventListener('click', refreshLiveFeeds);
+  $('#hotSearchBtn')?.addEventListener('click', openHotSearch);
   $('#searchInput').addEventListener('input', (e) => { state.query = e.target.value; render(); });
   $('#themeBtn').addEventListener('click', () => {
     state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
@@ -663,6 +947,14 @@ function bindEvents() {
     try { await importData(e.target.files[0]); } catch (err) { toast(`Lỗi nhập: ${err.message}`); }
     e.target.value = '';
   });
+  $('#addIncidentBtn')?.addEventListener('click', () => $('#incidentDialog').showModal());
+  $('#addChecklistBtn')?.addEventListener('click', () => $('#checklistDialog').showModal());
+  $('#addMilestoneBtn')?.addEventListener('click', () => $('#milestoneDialog').showModal());
+  $('#dailyReportBtn')?.addEventListener('click', copyDailyReport);
+  $('#pdfDailyReportBtn')?.addEventListener('click', exportDailyReport);
+  $('#incidentForm')?.addEventListener('submit', handleIncidentSubmit);
+  $('#checklistForm')?.addEventListener('submit', handleChecklistSubmit);
+  $('#milestoneForm')?.addEventListener('submit', handleMilestoneSubmit);
   $$('[data-close-dialog]').forEach(btn => btn.addEventListener('click', () => $('#' + btn.dataset.closeDialog).close()));
   window.addEventListener('online', () => { state.online = true; setStatus('LIVE_RADAR'); renderArticles(); });
   window.addEventListener('offline', () => { state.online = false; setStatus('OFFLINE'); renderArticles(); });

@@ -1,49 +1,84 @@
 # CHANGELOG
 
-## V1.0.0 - 2026-06-26
+## V1.1.0 FIELD PRO - 2026-06-26
+
+### Mục tiêu
+Nâng PCCC News Radar từ app đọc/lưu tin thành bộ sổ nghề PCCC/CNCH: tin nóng, nguồn sống/lỗi, chống trùng tin, hồ sơ vụ việc, checklist cơ sở, hồ sơ thiết bị, mốc pháp lý/dữ liệu, PDF và Zalo Pack.
 
 ### Thay đổi chính
+- Cập nhật version lên `1.1.0`.
+- Đổi cache PWA sang `pccc-news-radar-cache-v1.1.0`.
+- Thêm dashboard Field Pro:
+  - Tin đỏ cần đọc ngay.
+  - Tin từ nguồn chính thống.
+  - Nhóm tin có thể trùng vụ.
+  - Tình trạng nguồn Live API/RSS.
+- Thêm logic gộp/chống trùng tin theo tiêu đề/tóm tắt gần giống.
+- Thêm tab `Vụ việc` để lưu hồ sơ vụ cháy/nổ/CNCH.
+- Thêm tab `Checklist` với mẫu kiểm tra nhanh:
+  - Nhà ở kết hợp kinh doanh.
+  - Chung cư mini / nhà trọ.
+  - Kho xưởng.
+  - Cơ sở có thiết bị truyền tin.
+- Thêm tab `Mốc` để theo dõi pháp quy, kiểm định, truyền tin báo cháy, cập nhật dữ liệu cơ sở.
+- Thêm nút `Copy báo cáo ngày`.
+- Thêm nút `PDF báo cáo ngày`.
+- Bổ sung xuất PDF cho hồ sơ vụ việc và checklist.
+- Bổ sung export/import JSON cho `incidents`, `checklistRuns`, `milestones`.
+- Giữ nguyên module V1.0.1:
+  - Live API `/api/live-news.js`.
+  - Lưu bài offline IndexedDB.
+  - Xuất PDF bài viết.
+  - Copy/chia sẻ Zalo.
+  - Hồ sơ thiết bị, bình chữa cháy, kiểm định, truyền tin báo cháy.
 
-- Tạo mới app **PCCC News Radar**.
-- UI mobile-first lấy cảm hứng app đọc tin hiện đại kiểu Báo Mới, nhưng nhận diện riêng.
-- Feed tin dạng card, tab chuyên mục ngang, bottom navigation.
-- Nguồn nhanh: website chính thống, Facebook chính thống dạng watchlist, nguồn quốc tế/kỹ thuật.
-- Kho lưu offline bằng IndexedDB.
-- Dán bài thủ công để lưu toàn văn khi nguồn không cho lấy nội dung.
-- Xuất PDF đẹp bằng Print CSS.
-- Copy bản tin Zalo và Web Share API.
-- Quản lý hồ sơ thiết bị: bình chữa cháy, kiểm định, thiết bị truyền tin, trụ nước, thiết bị thoát nạn, hồ sơ cơ sở.
-- Export/import JSON toàn bộ dữ liệu.
-- PWA manifest + service worker cache shell.
-- Validator kiểm tra package.
-
-### File đã tạo
-
+### File đã sửa
 - `index.html`
 - `style.css`
 - `app.js`
-- `manifest.json`
 - `service-worker.js`
+- `package.json`
+- `tools/validate-app.js`
 - `README.md`
 - `CHANGELOG.md`
-- `package.json`
-- `data/sources.json`
-- `data/keywords.json`
-- `data/playbooks.json`
-- `assets/icon.svg`
-- `tools/validate-app.js`
 
 ### Test đã chạy
+```bash
+npm run check
+npm run validate
+```
 
-- `npm run check`
-- `npm run validate`
+Kết quả:
+```txt
+PCCC NEWS RADAR V1.1.0 FIELD PRO VALIDATION PASS
+```
 
 ### Tương thích dữ liệu
+- Không phá dữ liệu cũ V1.0/V1.0.1.
+- IndexedDB nâng từ `DB_VERSION = 1` lên `DB_VERSION = 2` và chỉ thêm object store mới:
+  - `incidents`
+  - `checklistRuns`
+  - `milestones`
+- Các store cũ vẫn giữ:
+  - `articles`
+  - `equipment`
 
-- Schema V1 dùng IndexedDB `pccc_news_radar_db` version 1.
-- localStorage keys đã khóa: `pccc_radar_settings`, `pccc_radar_version`, `pccc_radar_history`.
+### Giới hạn
+- Live API cần deploy Vercel hoặc chạy `npx vercel dev`.
+- Chạy bằng `python -m http.server` vẫn dùng được app/offline shell nhưng API `/api/live-news.js` không chạy.
+- Không cào Facebook trái phép.
+- Không tự đăng/chia sẻ vào Zalo.
+- PDF dùng Print CSS + Save as PDF của trình duyệt.
 
-### Ghi chú
+## V1.0.1 LIVE NEWS HOTFIX - 2026-06-25
+- Thêm Vercel Live API lấy Google News RSS theo nhóm PCCC/CNCH.
+- Thêm nút `Cập nhật nóng` và `Mở tìm tin nóng`.
+- Fallback RSS/public feed khi Live API lỗi.
 
-- V1.0 không dùng backend/private API.
-- Facebook/Zalo triển khai theo hướng mở nguồn, copy/chia sẻ thủ công, không tự động hóa trái phép.
+## V1.0.0 - 2026-06-25
+- Bản nền PWA tĩnh.
+- UI kiểu app đọc tin.
+- Lưu bài offline.
+- Xuất PDF bài viết.
+- Copy Zalo/Web Share API.
+- Hồ sơ thiết bị/kiểm định/truyền tin.

@@ -14,11 +14,12 @@ const requiredFiles = [
   'data/sources.json',
   'data/keywords.json',
   'data/playbooks.json',
-  'assets/icon.svg'
+  'assets/icon.svg',
+  'api/live-news.js'
 ];
 const forbidden = ['.env.local', '.vercel', 'node_modules'];
 const requiredKeys = ['pccc_radar_settings', 'pccc_radar_version', 'pccc_radar_history'];
-const cacheName = 'pccc-news-radar-cache-v1.0.0';
+const cacheName = 'pccc-news-radar-cache-v1.1.0';
 let failed = false;
 
 function fail(message) {
@@ -59,6 +60,12 @@ for (const key of requiredKeys) {
 if (!app.includes('indexedDB.open')) fail('app.js missing IndexedDB usage');
 if (!app.includes('window.print')) fail('app.js missing PDF print flow');
 if (!app.includes('navigator.share')) fail('app.js missing Web Share API fallback flow');
+if (!app.includes('api/live-news')) fail('app.js missing Vercel Live API fetch flow');
+if (!app.includes('checklistRuns')) fail('app.js missing checklist field-pro store');
+if (!app.includes('incidents')) fail('app.js missing incident dossier store');
+if (!app.includes('milestones')) fail('app.js missing milestone store');
+const liveApi = fs.readFileSync(path.join(root, 'api/live-news.js'), 'utf8');
+if (!liveApi.includes('news.google.com/rss/search')) fail('api/live-news.js missing Google News RSS search');
 pass('Core app features present');
 
 const allText = requiredFiles
@@ -78,5 +85,5 @@ pass('Data JSON files parse correctly');
 
 if (failed) process.exit(1);
 console.log('============================================');
-console.log('PCCC NEWS RADAR V1.0.0 VALIDATION PASS');
+console.log('PCCC NEWS RADAR V1.1.0 FIELD PRO VALIDATION PASS');
 console.log('============================================');

@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#b91c1c" />
-  <meta name="description" content="PCCC News Radar - PWA theo dõi tin PCCC/CNCH, lưu offline, xuất PDF đẹp, chia sẻ Zalo." />
-  <title>PCCC News Radar</title>
+  <meta name="description" content="PCCC News Radar Field Pro - PWA theo dõi tin PCCC/CNCH, hồ sơ vụ việc, checklist, thiết bị, PDF, Zalo." />
+  <title>PCCC News Radar Field Pro</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="style.css" />
@@ -16,8 +16,8 @@
       <div class="brand-row">
         <div class="logo-mark" aria-hidden="true">114</div>
         <div>
-          <h1>PCCC News Radar</h1>
-          <p class="subtitle">Tin nhanh · Chính thống · Lưu bài học · Offline</p>
+          <h1>PCCC News Radar Field Pro</h1>
+          <p class="subtitle">Tin nhanh · Hồ sơ vụ việc · Checklist · Offline</p>
         </div>
         <button id="themeBtn" class="icon-btn" type="button" title="Đổi chế độ sáng/tối">◐</button>
       </div>
@@ -28,7 +28,7 @@
       </div>
       <div class="search-row">
         <input id="searchInput" type="search" placeholder="Tìm: cháy chung cư, bình kiểm định, truyền tin, trực thăng..." autocomplete="off" />
-        <button id="refreshBtn" type="button" class="primary-btn">Cập nhật</button>
+        <button id="refreshBtn" type="button" class="primary-btn">Cập nhật nóng</button>
       </div>
     </header>
 
@@ -43,6 +43,7 @@
           <div class="metric"><span id="metricNews">0</span><small>Tin / hồ sơ</small></div>
           <div class="metric"><span id="metricSaved">0</span><small>Đã lưu</small></div>
           <div class="metric"><span id="metricEquipment">0</span><small>Thiết bị</small></div>
+          <div class="metric"><span id="metricUrgent">0</span><small>Tin đỏ</small></div>
         </div>
       </section>
 
@@ -56,14 +57,37 @@
         <button data-tab="model">Mô hình hay</button>
         <button data-tab="equipment">Trang bị</button>
         <button data-tab="data">Dữ liệu PCCC</button>
+        <button data-tab="incident-log">Vụ việc</button>
+        <button data-tab="checklist">Checklist</button>
+        <button data-tab="milestones">Mốc</button>
         <button data-tab="saved">Đã lưu</button>
       </nav>
 
       <section class="quick-actions">
+        <button id="hotSearchBtn" type="button">⚡ Mở tìm tin nóng</button>
         <button id="pasteArticleBtn" type="button">＋ Dán bài để lưu offline</button>
         <button id="addEquipmentBtn" type="button">＋ Hồ sơ thiết bị</button>
+        <button id="addIncidentBtn" type="button">＋ Hồ sơ vụ việc</button>
+        <button id="addChecklistBtn" type="button">＋ Checklist cơ sở</button>
+        <button id="addMilestoneBtn" type="button">＋ Mốc cần nhớ</button>
+        <button id="dailyReportBtn" type="button">Copy báo cáo ngày</button>
+        <button id="pdfDailyReportBtn" type="button">PDF báo cáo ngày</button>
         <button id="exportDataBtn" type="button">Xuất JSON</button>
         <label class="file-label">Nhập JSON<input id="importDataInput" type="file" accept="application/json" /></label>
+      </section>
+
+      <section id="fieldProPanel" class="field-pro-panel">
+        <div class="pro-card"><small>Tin đỏ</small><strong id="proUrgentCount">0</strong><span>Cần đọc ngay</span></div>
+        <div class="pro-card"><small>Nguồn chính thống</small><strong id="proOfficialCount">0</strong><span>Ưu tiên đối chiếu</span></div>
+        <div class="pro-card"><small>Tin trùng</small><strong id="proDuplicateCount">0</strong><span>Gộp theo vụ</span></div>
+        <div class="pro-card"><small>Nguồn sống</small><strong id="proSourceCount">—</strong><span>Live API/RSS</span></div>
+        <details class="pro-detail">
+          <summary>Dashboard nguồn tin & chống trùng</summary>
+          <div class="pro-detail-grid">
+            <div><h3>Nguồn đang sống/lỗi</h3><div id="sourceHealthList"></div></div>
+            <div><h3>Nhóm tin có thể trùng vụ</h3><div id="duplicateList"></div></div>
+          </div>
+        </details>
       </section>
 
       <section id="sourcePanel" class="source-panel">
@@ -91,7 +115,7 @@
           <div id="hotKeywords" class="keyword-cloud"></div>
           <details open>
             <summary>Ghi nhớ vận hành</summary>
-            <p class="hint">V1.0 không cào Facebook trái phép, không tự đăng Zalo, không dùng private API. Nguồn lỗi sẽ chuyển sang chế độ mở link/tìm kiếm thủ công.</p>
+            <p class="hint">V1.1 ưu tiên Live API khi deploy Vercel để lấy tin mới thật. Không cào Facebook trái phép, không tự đăng Zalo, không dùng private API. Nguồn lỗi sẽ chuyển sang chế độ mở link/tìm kiếm thủ công.</p>
           </details>
         </aside>
       </section>
@@ -101,6 +125,24 @@
         <p class="hint">Quản lý nhanh bình chữa cháy, tem kiểm định, thiết bị truyền tin báo cháy và trạng thái kết nối dữ liệu.</p>
         <div id="equipmentList" class="equipment-list"></div>
       </section>
+
+      <section id="incidentSection" class="equipment-section hidden">
+        <h2>Sổ vụ việc</h2>
+        <p class="hint">Hồ sơ hóa các vụ cháy/nổ/CNCH quan trọng để lưu bài học, xuất PDF và chia sẻ nhanh.</p>
+        <div id="incidentList" class="equipment-list"></div>
+      </section>
+
+      <section id="checklistSection" class="equipment-section hidden">
+        <h2>Checklist cơ sở</h2>
+        <p class="hint">Tạo phiếu rà soát nhanh cho nhà ở kết hợp kinh doanh, chung cư mini, kho xưởng, cơ sở có truyền tin báo cháy.</p>
+        <div id="checklistList" class="equipment-list"></div>
+      </section>
+
+      <section id="milestoneSection" class="equipment-section hidden">
+        <h2>Mốc pháp lý / kiểm định / dữ liệu</h2>
+        <p class="hint">Theo dõi mốc cần đọc văn bản, kiểm tra bình, cập nhật dữ liệu cơ sở, kết nối thiết bị truyền tin báo cháy.</p>
+        <div id="milestoneList" class="equipment-list"></div>
+      </section>
     </main>
 
     <nav class="bottom-nav" aria-label="Điều hướng chính">
@@ -108,6 +150,8 @@
       <button data-tab="law">Pháp quy</button>
       <button data-tab="tech">Công nghệ</button>
       <button data-tab="equipment">Trang bị</button>
+      <button data-tab="incident-log">Vụ việc</button>
+      <button data-tab="checklist">Checklist</button>
       <button data-tab="saved">Đã lưu</button>
     </nav>
   </div>
@@ -188,6 +232,82 @@
       <div class="form-actions">
         <button type="button" class="ghost-btn" data-close-dialog="equipmentDialog">Hủy</button>
         <button type="submit" class="primary-btn">Lưu hồ sơ</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="incidentDialog" class="form-dialog">
+    <form method="dialog" id="incidentForm" class="form-card">
+      <h2>Hồ sơ vụ việc</h2>
+      <input name="title" required placeholder="Tên vụ việc / tiêu đề chính" />
+      <div class="two-cols">
+        <input name="location" placeholder="Địa điểm" />
+        <input name="eventTime" placeholder="Thời gian xảy ra" />
+      </div>
+      <div class="two-cols">
+        <select name="severity">
+          <option value="red">Đỏ - nghiêm trọng</option>
+          <option value="orange">Cam</option>
+          <option value="yellow">Vàng</option>
+          <option value="green">Xanh</option>
+        </select>
+        <select name="facilityType">
+          <option>Nhà dân / nhà ở kết hợp kinh doanh</option>
+          <option>Chung cư / nhà cao tầng</option>
+          <option>Kho xưởng / sản xuất</option>
+          <option>Hóa chất / xăng dầu / gas</option>
+          <option>CNCH / tai nạn / mắc kẹt</option>
+          <option>Khác</option>
+        </select>
+      </div>
+      <input name="source" placeholder="Nguồn / link đối chiếu" />
+      <textarea name="summary" rows="4" placeholder="Tóm tắt vụ việc"></textarea>
+      <textarea name="lesson" rows="4" placeholder="Bài học PCCC/CNCH rút ra"></textarea>
+      <textarea name="followUp" rows="3" placeholder="Việc cần theo dõi / câu hỏi kiểm tra lại"></textarea>
+      <div class="form-actions">
+        <button type="button" class="ghost-btn" data-close-dialog="incidentDialog">Hủy</button>
+        <button type="submit" class="primary-btn">Lưu hồ sơ vụ việc</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="checklistDialog" class="form-dialog">
+    <form method="dialog" id="checklistForm" class="form-card">
+      <h2>Checklist cơ sở</h2>
+      <input name="facility" required placeholder="Tên cơ sở / địa điểm rà soát" />
+      <select name="template">
+        <option>Nhà ở kết hợp kinh doanh</option>
+        <option>Chung cư mini / nhà trọ</option>
+        <option>Kho xưởng</option>
+        <option>Cơ sở có thiết bị truyền tin</option>
+      </select>
+      <textarea name="itemsText" rows="7" placeholder="Để trống dùng checklist mẫu. Hoặc nhập mỗi dòng một nội dung kiểm tra."></textarea>
+      <textarea name="notes" rows="4" placeholder="Ghi chú sau rà soát"></textarea>
+      <div class="form-actions">
+        <button type="button" class="ghost-btn" data-close-dialog="checklistDialog">Hủy</button>
+        <button type="submit" class="primary-btn">Lưu checklist</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="milestoneDialog" class="form-dialog">
+    <form method="dialog" id="milestoneForm" class="form-card">
+      <h2>Mốc cần nhớ</h2>
+      <input name="title" required placeholder="Việc cần theo dõi" />
+      <div class="two-cols">
+        <select name="type">
+          <option>Pháp quy / văn bản</option>
+          <option>Kiểm định bình/thiết bị</option>
+          <option>Thiết bị truyền tin báo cháy</option>
+          <option>Cập nhật dữ liệu cơ sở</option>
+          <option>Rà soát hồ sơ</option>
+        </select>
+        <input name="dueDate" type="date" />
+      </div>
+      <textarea name="notes" rows="5" placeholder="Ghi chú / nguồn đối chiếu / việc cần làm"></textarea>
+      <div class="form-actions">
+        <button type="button" class="ghost-btn" data-close-dialog="milestoneDialog">Hủy</button>
+        <button type="submit" class="primary-btn">Lưu mốc</button>
       </div>
     </form>
   </dialog>

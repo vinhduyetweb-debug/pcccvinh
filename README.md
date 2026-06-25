@@ -1,33 +1,104 @@
-# PCCC News Radar V1.0.0
+# PCCC News Radar V1.1 Field Pro
 
-**PCCC News Radar** là mini app PWA tĩnh hỗ trợ theo dõi tin tức PCCC/CNCH, nguồn chính thống, mô hình hay, công nghệ mới, trang bị/kiểm định, thiết bị truyền tin báo cháy và dữ liệu cơ sở.
+PCCC News Radar là mini app PWA phục vụ công tác PCCC và CNCH tại Việt Nam: theo dõi tin cháy nổ/CNCH, ưu tiên nguồn chính thống, lưu bài offline, xuất PDF đẹp, chia sẻ Zalo, quản lý hồ sơ vụ việc, checklist cơ sở, trang bị/kiểm định và các mốc pháp lý/dữ liệu cần nhớ.
 
-App ưu tiên phong cách đọc tin hiện đại kiểu app mobile: feed card, tab chuyên mục ngang, đọc bài riêng, lưu offline, xuất PDF đẹp và copy/chia sẻ Zalo thủ công.
+## Tinh thần sản phẩm
 
-## Mục tiêu
-
-- Gom và phân loại thông tin liên quan PCCC/CNCH.
-- Ưu tiên nguồn chính thống trong nước và nguồn kỹ thuật quốc tế.
-- Lưu bài viết/hồ sơ để đọc offline.
-- Xuất PDF dạng hồ sơ nghiệp vụ đẹp.
-- Copy bản tin ngắn để gửi Zalo.
-- Quản lý nhanh bình chữa cháy, tem kiểm định, thiết bị truyền tin, hồ sơ cơ sở.
-
-## Nguyên tắc an toàn
-
-- PWA tĩnh: HTML/CSS/JavaScript thuần.
-- Không backend trong V1.0.
-- Không database server.
-- Không yêu cầu đăng nhập.
+- App nhỏ gọn, thực dụng, mobile-first.
+- Không đăng nhập.
+- Không tracking.
 - Không private API.
-- Không tracking người dùng.
 - Không cào Facebook trái phép.
-- Không tự động đăng/chia sẻ vào Zalo.
-- Dữ liệu lưu cục bộ bằng IndexedDB và localStorage.
+- Không tự động đăng Zalo/Facebook.
+- Dữ liệu người dùng lưu cục bộ bằng IndexedDB/localStorage.
+- Có export/import JSON để sao lưu.
+- Có thể chạy offline sau lần mở đầu tiên.
 
-## Cách chạy local
+## Chức năng chính
 
-Dùng một HTTP server tĩnh. Ví dụ với Python:
+### 1. Radar tin nóng
+- Cập nhật tin PCCC/CNCH qua Vercel Function `/api/live-news.js`.
+- Fallback RSS/public feed nếu Live API lỗi.
+- Nút mở nhanh Google News, nguồn Cục Cảnh sát PCCC và CNCH, Facebook search.
+- Chấm mức độ: Đỏ/Cam/Vàng/Xanh.
+
+### 2. Dashboard Field Pro
+- Số tin đỏ cần đọc ngay.
+- Số tin từ nguồn chính thống.
+- Nguồn live đang sống/lỗi.
+- Nhóm tin có thể trùng cùng một vụ việc.
+
+### 3. Kho bài đã lưu offline
+- Lưu bài/tóm tắt/nội dung dán thủ công.
+- Đọc lại khi offline.
+- Ghi bài học PCCC/CNCH.
+- Xuất PDF bài viết.
+- Copy bản tin Zalo.
+
+### 4. Sổ vụ việc
+- Tạo hồ sơ vụ cháy/nổ/CNCH.
+- Lưu địa điểm, thời gian, loại hình, mức độ, nguồn, tóm tắt, bài học, việc cần theo dõi.
+- Xuất PDF hồ sơ vụ việc.
+- Copy nhanh gửi Zalo.
+
+### 5. Checklist cơ sở
+Mẫu sẵn:
+- Nhà ở kết hợp kinh doanh.
+- Chung cư mini / nhà trọ.
+- Kho xưởng.
+- Cơ sở có thiết bị truyền tin.
+
+Có thể nhập checklist thủ công theo từng dòng, lưu offline, xuất PDF/copy Zalo.
+
+### 6. Trang bị & kiểm định
+- Bình chữa cháy.
+- Thiết bị truyền tin báo cháy.
+- Trụ nước / điểm cấp nước.
+- Thiết bị thoát nạn.
+- Hồ sơ cơ sở.
+
+Lưu vị trí, mã tem/serial, ngày kiểm định/khai báo, ngày kiểm tra lại, trạng thái và ghi chú.
+
+### 7. Mốc pháp lý / dữ liệu
+- Theo dõi mốc kiểm định.
+- Theo dõi mốc đọc văn bản.
+- Theo dõi mốc cập nhật dữ liệu cơ sở.
+- Theo dõi thiết bị truyền tin báo cháy.
+
+### 8. PDF & Zalo Pack
+- PDF bài viết.
+- PDF hồ sơ vụ việc.
+- PDF checklist.
+- PDF hồ sơ thiết bị.
+- PDF báo cáo ngày.
+- Copy tin ngắn gửi Zalo.
+- Copy hồ sơ/checklist/mốc gửi Zalo.
+
+## Cấu trúc file
+
+```txt
+/
+  index.html
+  style.css
+  app.js
+  manifest.json
+  service-worker.js
+  package.json
+  README.md
+  CHANGELOG.md
+  api/
+    live-news.js
+  assets/
+    icon.svg
+  data/
+    sources.json
+    keywords.json
+    playbooks.json
+  tools/
+    validate-app.js
+```
+
+## Chạy local kiểu PWA tĩnh
 
 ```bash
 python -m http.server 5173
@@ -39,13 +110,29 @@ Mở:
 http://localhost:5173
 ```
 
-Không nên mở trực tiếp `file://` vì service worker/PWA cần HTTP hoặc HTTPS.
+Lưu ý: chạy kiểu này app dùng được, nhưng Vercel Function `/api/live-news.js` không chạy.
 
-## Cách test
+## Test Live API local
+
+Cài/khởi động bằng Vercel CLI:
+
+```bash
+npx vercel dev
+```
+
+Sau đó mở URL local do Vercel CLI cung cấp.
+
+## Test package
 
 ```bash
 npm run check
 npm run validate
+```
+
+Kết quả kỳ vọng:
+
+```txt
+PCCC NEWS RADAR V1.1.0 FIELD PRO VALIDATION PASS
 ```
 
 ## Deploy Vercel
@@ -55,72 +142,24 @@ npm run check
 npm run validate
 git status
 git add .
-git commit -m "Release V1.0.0 PCCC News Radar"
+git commit -m "Release V1.1.0 Field Pro"
 git push origin main
 npx vercel --prod
 ```
 
-## Deploy GitHub Pages
+## Backup / Restore
 
-Có thể bật GitHub Pages từ branch `main`, thư mục root.
+- Bấm `Xuất JSON` để sao lưu toàn bộ bài đã lưu, thiết bị, hồ sơ vụ việc, checklist, mốc và cài đặt.
+- Bấm `Nhập JSON` để khôi phục.
 
-## Cách dùng nhanh
+## Giới hạn
 
-1. Mở app, xem tab **Tất cả** hoặc chọn chuyên mục.
-2. Bấm **Cập nhật** để thử lấy RSS/public feed từ nguồn cấu hình.
-3. Nếu nguồn không cho đọc trực tiếp, dùng **Nguồn nhanh & tìm kiếm chính thống** để mở link/tìm thủ công.
-4. Bấm **Đọc** để xem chi tiết.
-5. Bấm **Lưu offline** để lưu vào kho.
-6. Vào tab **Đã lưu** để đọc lại khi mất mạng.
-7. Bấm **Xuất PDF** để in/lưu PDF đẹp.
-8. Bấm **Copy Zalo** hoặc **Chia sẻ** để gửi nội dung thủ công qua Zalo.
-9. Bấm **＋ Hồ sơ thiết bị** để lưu bình chữa cháy, tem kiểm định, thiết bị truyền tin hoặc hồ sơ cơ sở.
-10. Dùng **Xuất JSON** để sao lưu toàn bộ dữ liệu.
-
-## Giới hạn V1.0
-
-- Một số website/RSS/Facebook có thể chặn đọc trực tiếp do CORS hoặc chính sách nền tảng.
-- Facebook chỉ hỗ trợ mở nguồn/tìm nhanh/lưu link/dán nội dung thủ công; không cào dữ liệu.
-- Zalo dùng Web Share API hoặc copy thủ công; không tự động gửi tin.
-- PDF dùng Print CSS + Save as PDF của trình duyệt.
-- Nội dung nghiệp vụ trong app là hỗ trợ ghi nhớ/tham khảo, không thay thế văn bản pháp luật hoặc kết luận chính thức.
-
-## Dữ liệu lưu trữ
-
-- localStorage:
-  - `pccc_radar_settings`
-  - `pccc_radar_version`
-  - `pccc_radar_history`
-- IndexedDB:
-  - DB: `pccc_news_radar_db`
-  - Store: `articles`
-  - Store: `equipment`
-
-## Cấu trúc file
-
-```txt
-/
-  index.html
-  style.css
-  app.js
-  manifest.json
-  service-worker.js
-  README.md
-  CHANGELOG.md
-  package.json
-  data/
-    sources.json
-    keywords.json
-    playbooks.json
-  assets/
-    icon.svg
-  tools/
-    validate-app.js
-```
+- Không thay thế nguồn/văn bản chính thức.
+- Không tự kết luận pháp lý.
+- Không cào Facebook trái phép.
+- Không tự động chia sẻ Zalo.
+- Một số nguồn RSS có thể lỗi/CORS; dùng nút mở tìm tin nóng hoặc dán nội dung thủ công để lưu offline.
 
 ## Version
 
-V1.0.0 — BAOMOI STYLE + OFFLINE PDF + ZALO + FB + TECH + COMPLIANCE.
-
-**Tin phải nhanh, nguồn phải sạch, bài học phải lưu.**
-"# pcccvinh" 
+`1.1.0 FIELD PRO`
